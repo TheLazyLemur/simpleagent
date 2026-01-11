@@ -26,7 +26,7 @@ sections:
               title: "BuildSystemPrompt calls LoadRules"
               code: "_, rules := LoadRules()"
               file: "config.go"
-              line: 164
+              line: 169
             children:
               - text: "LoadRules iterates over both .rules and .claude/rules"
                 children:
@@ -35,21 +35,21 @@ sections:
                       title: "Search both rule directories"
                       code: "for _, dirName := range []string{rulesDirName, \".claude/rules\"} {"
                       file: "config.go"
-                      line: 229
+                      line: 234
                     children:
                       - block:
                           id: "1c"
                           title: "findDir calls findInAncestors"
                           code: "rulesDir := findDir(dirName)"
                           file: "config.go"
-                          line: 230
+                          line: 235
                         children:
                           - block:
                               id: "1d"
                               title: "findInAncestors checks if path exists"
                               code: "if err == nil && (!mustBeDir || info.IsDir()) {"
                               file: "config.go"
-                              line: 69
+                              line: 74
 
   - id: 2
     title: "File Parsing"
@@ -62,21 +62,21 @@ sections:
               title: "Parse YAML frontmatter"
               code: "fm, body := ParseFrontmatter(string(data))"
               file: "config.go"
-              line: 258
+              line: 263
             children:
               - block:
                   id: "2b"
                   title: "Unmarshal frontmatter to Rule struct"
                   code: "yaml.Unmarshal([]byte(fm), &rule)"
                   file: "config.go"
-                  line: 265
+                  line: 270
                 children:
                   - block:
                       id: "2c"
                       title: "Append to rules slice"
                       code: "rules = append(rules, ruleFile{"
                       file: "config.go"
-                      line: 268
+                      line: 273
 
   - id: 3
     title: "Rule Categorization"
@@ -89,21 +89,21 @@ sections:
               title: "Format always-loaded rules"
               code: "alwaysRules := formatAlwaysRules(rules)"
               file: "config.go"
-              line: 165
+              line: 170
             children:
               - block:
                   id: "3b"
                   title: "Check if rule has no pattern"
                   code: "if r.Pattern == \"\" {"
                   file: "config.go"
-                  line: 288
+                  line: 292
                 children:
                   - block:
                       id: "3c"
                       title: "Wrap in rule tags"
-                      code: "always = append(always, \"<rule source=\\\"\"+r.SourceFile+\"\\\">\\n\"+r.Content+\"\\n</rule>\")"
+                      code: "always = append(always, wrapXML(\"rule\", r.SourceFile, r.Content))"
                       file: "config.go"
-                      line: 289
+                      line: 293
 
   - id: 4
     title: "Conditional Rule Matching"
@@ -123,11 +123,11 @@ sections:
                   title: "Match pattern against file path"
                   code: "if match, _ := doublestar.Match(r.Pattern, relPath); match {"
                   file: "config.go"
-                  line: 316
+                  line: 320
                 children:
                   - block:
                       id: "4c"
                       title: "Append matched rule content"
-                      code: "matched = append(matched, \"<rule source=\\\"\"+r.SourceFile+\"\\\">\\n\"+r.Content+\"\\n</rule>\")"
+                      code: "matched = append(matched, wrapXML(\"rule\", r.SourceFile, r.Content))"
                       file: "config.go"
-                      line: 317
+                      line: 321

@@ -57,6 +57,11 @@ func DefaultMemoryFiles() []string {
 	return []string{"CLAUDE.md"}
 }
 
+// wrapXML wraps content in an XML tag with source attribute
+func wrapXML(tag, source, content string) string {
+	return "<" + tag + " source=\"" + source + "\">\n" + content + "\n</" + tag + ">"
+}
+
 // findInAncestors walks up from cwd looking for target, returns full path or ""
 func findInAncestors(target string, mustBeDir bool) string {
 	dir, err := os.Getwd()
@@ -142,8 +147,7 @@ func GetMemoryFilesContent(config *Config, configDir string) (string, []string) 
 		}
 		content := strings.TrimSpace(string(data))
 		if content != "" {
-			wrapped := "<memory source=\"" + memFile + "\">\n" + content + "\n</memory>"
-			contents = append(contents, wrapped)
+			contents = append(contents, wrapXML("memory", memFile, content))
 			loaded = append(loaded, memFile)
 		}
 	}
@@ -286,7 +290,7 @@ func formatAlwaysRules(rules []ruleFile) string {
 	var always []string
 	for _, r := range rules {
 		if r.Pattern == "" {
-			always = append(always, "<rule source=\""+r.SourceFile+"\">\n"+r.Content+"\n</rule>")
+			always = append(always, wrapXML("rule", r.SourceFile, r.Content))
 		}
 	}
 	return strings.Join(always, "\n\n")
@@ -314,7 +318,7 @@ func GetMatchingRules(filePath string) (string, []string) {
 			continue // skip always-loaded rules
 		}
 		if match, _ := doublestar.Match(r.Pattern, relPath); match {
-			matched = append(matched, "<rule source=\""+r.SourceFile+"\">\n"+r.Content+"\n</rule>")
+			matched = append(matched, wrapXML("rule", r.SourceFile, r.Content))
 			sources = append(sources, r.SourceFile)
 		}
 	}
