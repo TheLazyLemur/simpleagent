@@ -65,37 +65,5 @@ func replaceText(input json.RawMessage) Result {
 
 // formatDiff creates a unified diff-like view of the change
 func formatDiff(oldText, newText string) string {
-	// Escape and truncate for display
-	oldLines := strings.Split(strings.ReplaceAll(oldText, "\r\n", "\n"), "\n")
-	newLines := strings.Split(strings.ReplaceAll(newText, "\r\n", "\n"), "\n")
-
-	oldTruncated := truncateLines(oldLines, 5)
-	newTruncated := truncateLines(newLines, 5)
-
-	var b strings.Builder
-	b.WriteString("--- Removed (")
-	b.WriteString(fmt.Sprintf("%d lines", len(oldLines)))
-	b.WriteString(")\n")
-	for _, line := range oldTruncated {
-		b.WriteString("- ")
-		b.WriteString(line)
-		b.WriteString("\n")
-	}
-	if len(oldLines) > 5 {
-		b.WriteString(fmt.Sprintf("- ... and %d more lines\n", len(oldLines)-5))
-	}
-
-	b.WriteString("\n+++ Added (")
-	b.WriteString(fmt.Sprintf("%d lines", len(newLines)))
-	b.WriteString(")\n")
-	for _, line := range newTruncated {
-		b.WriteString("+ ")
-		b.WriteString(line)
-		b.WriteString("\n")
-	}
-	if len(newLines) > 5 {
-		b.WriteString(fmt.Sprintf("+ ... and %d more lines\n", len(newLines)-5))
-	}
-
-	return b.String()
+	return formatLines("---", "Removed", oldText, 5) + "\n" + formatLines("+++", "Added", newText, 5)
 }

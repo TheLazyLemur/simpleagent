@@ -150,23 +150,7 @@ func writeFile(input json.RawMessage) Result {
 
 // formatContentPreview creates a preview of content to be written
 func formatContentPreview(content string) string {
-	lines := strings.Split(strings.ReplaceAll(content, "\r\n", "\n"), "\n")
-	truncated := truncateLines(lines, 10)
-
-	var b strings.Builder
-	b.WriteString("+++ New file content (")
-	b.WriteString(fmt.Sprintf("%d lines", len(lines)))
-	b.WriteString(")\n")
-	for _, line := range truncated {
-		b.WriteString("+ ")
-		b.WriteString(line)
-		b.WriteString("\n")
-	}
-	if len(lines) > 10 {
-		b.WriteString(fmt.Sprintf("+ ... and %d more lines\n", len(lines)-10))
-	}
-
-	return b.String()
+	return formatLines("+++", "New file content", content, 10)
 }
 
 func ls(input json.RawMessage) Result {

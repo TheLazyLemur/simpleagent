@@ -64,3 +64,22 @@ func truncateLines(lines []string, max int) []string {
 	}
 	return lines[:max]
 }
+
+// formatLines formats a section of diff output with prefix and truncation
+func formatLines(prefix, header string, text string, maxLines int) string {
+	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	truncated := truncateLines(lines, maxLines)
+
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("%s %s (%d lines)\n", prefix, header, len(lines)))
+	linePrefix := string(prefix[0]) + " " // "+++" -> "+ ", "---" -> "- "
+	for _, line := range truncated {
+		b.WriteString(linePrefix)
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+	if len(lines) > maxLines {
+		b.WriteString(fmt.Sprintf("%s... and %d more lines\n", linePrefix, len(lines)-maxLines))
+	}
+	return b.String()
+}
