@@ -6,18 +6,6 @@ import (
 	"simpleagent/tools"
 )
 
-// ReminderFunc checks state and returns a reminder string (empty if not applicable)
-type ReminderFunc func(state *AgentState) string
-
-var reminders []ReminderFunc
-
-func init() {
-	reminders = []ReminderFunc{
-		todoReminder,
-		planModeReminder,
-	}
-}
-
 // AgentState holds state needed for reminder checks
 type AgentState struct {
 	PlanMode            bool
@@ -27,10 +15,11 @@ type AgentState struct {
 // GetReminders returns all applicable reminders for current state
 func GetReminders(state *AgentState) string {
 	var parts []string
-	for _, fn := range reminders {
-		if r := fn(state); r != "" {
-			parts = append(parts, r)
-		}
+	if r := todoReminder(state); r != "" {
+		parts = append(parts, r)
+	}
+	if r := planModeReminder(state); r != "" {
+		parts = append(parts, r)
 	}
 	return strings.Join(parts, "\n")
 }

@@ -208,7 +208,7 @@ sections:
                     return ""
                 }
               file: "reminders.go"
-              line: 38
+              line: 27
             children:
               - text: "Injected via GetReminders into tool result"
                 children:
@@ -225,7 +225,7 @@ sections:
                             last.Content += "\n" + reminders
                         }
                       file: "main.go"
-                      line: 285
+                      line: 289
 
   - id: 4
     title: "Display"
