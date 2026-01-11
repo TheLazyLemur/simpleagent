@@ -31,11 +31,12 @@ type SubagentConfig struct {
 	SystemPrompt string
 }
 
-// Init configures the tools package
+// Init configures the tools package (full replacement, caller provides complete config)
 func Init(cfg Config) {
 	globalMCPClients = cfg.MCPClients
-	if cfg.PermissionsMode != "" {
-		permissionsMode = cfg.PermissionsMode
+	permissionsMode = cfg.PermissionsMode
+	if permissionsMode == "" {
+		permissionsMode = "prompt"
 	}
 	RuleMatcher = cfg.RuleMatcher
 	SkillLoader = cfg.SkillLoader
