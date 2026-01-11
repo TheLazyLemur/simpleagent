@@ -55,6 +55,21 @@ func getEnvOrDefault(key, def string) string {
 	return def
 }
 
+func makeSkillLoader() func(string) (*tools.SkillInfo, error) {
+	return func(name string) (*tools.SkillInfo, error) {
+		skill, err := LoadSkill(name)
+		if err != nil {
+			return nil, err
+		}
+		return &tools.SkillInfo{
+			Name:         skill.Name,
+			AllowedTools: skill.AllowedTools,
+			Dir:          skill.Dir,
+			Content:      skill.Content,
+		}, nil
+	}
+}
+
 var (
 	baseURL = getEnvOrDefault("ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic")
 	model   = getEnvOrDefault("ANTHROPIC_MODEL", "MiniMax-M2.1")
@@ -115,7 +130,6 @@ func main() {
 		if sess.PermissionsMode != "" {
 			permissionsMode = sess.PermissionsMode
 		}
-		tools.SetPermissionsMode(permissionsMode)
 		fmt.Println(tools.Status("resumed") + " " + tools.Dim(sessionID))
 		if planMode {
 			fmt.Println(tools.Plan("plan mode"))
@@ -133,11 +147,11 @@ func main() {
 
 	// Load config for MCP servers
 	config, _, _ := LoadConfig()
+	var mcpClients *tools.MCPClients
 	if len(config.MCPServers) > 0 {
 		ctx := context.Background()
-		mcpClients := tools.NewMCPClients(ctx, config.MCPServers)
+		mcpClients = tools.NewMCPClients(ctx, config.MCPServers)
 		defer mcpClients.Close()
-		tools.SetMCPClients(mcpClients)
 		fmt.Println(tools.Status("mcp") + " " + tools.Dim(fmt.Sprintf("%d server(s)", len(config.MCPServers))))
 	}
 
@@ -149,25 +163,17 @@ func main() {
 		fmt.Println(tools.Status("loaded") + " " + tools.Dim(fmt.Sprintf("%d memory file(s)", len(loadedFiles))))
 	}
 
-	// Wire up subagent config for task tool
-	tools.SetSubagentConfig(client, model, systemPrompt)
-
-	// Wire up rule matcher for conditional rule injection
-	tools.RuleMatcher = GetMatchingRules
-
-	// Wire up skill loader for invoke_skill tool
-	tools.SkillLoader = func(name string) (*tools.SkillInfo, error) {
-		skill, err := LoadSkill(name)
-		if err != nil {
-			return nil, err
-		}
-		return &tools.SkillInfo{
-			Name:         skill.Name,
-			AllowedTools: skill.AllowedTools,
-			Dir:          skill.Dir,
-			Content:      skill.Content,
-		}, nil
-	}
+	tools.Init(tools.Config{
+		MCPClients:      mcpClients,
+		PermissionsMode: permissionsMode,
+		RuleMatcher:     GetMatchingRules,
+		SkillLoader:     makeSkillLoader(),
+		Subagent: &tools.SubagentConfig{
+			Client:       client,
+			Model:        model,
+			SystemPrompt: systemPrompt,
+		},
+	})
 
 	for {
 		fmt.Print(tools.Prompt())
