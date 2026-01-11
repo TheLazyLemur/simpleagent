@@ -14,13 +14,6 @@ import (
 
 var planRenderer *glamour.TermRenderer
 
-func init() {
-	planRenderer, _ = glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(100),
-	)
-}
-
 type ExitPlanModeInput struct {
 	Plan string `json:"plan"`
 }
@@ -31,6 +24,11 @@ type ExitPlanModeDecision struct {
 }
 
 func init() {
+	planRenderer, _ = glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(100),
+	)
+
 	register(claude.Tool{
 		Name:        "ExitPlanMode",
 		Description: "Present a plan for user approval and potentially exit plan mode. Pass your complete plan as the 'plan' parameter. User sees the plan and chooses: Accept (exit plan mode, proceed), Deny (stay in plan mode, revise), or Continue (stay in plan mode, keep exploring).",
