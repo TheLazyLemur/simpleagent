@@ -78,7 +78,7 @@ var blockedFlags = map[string]map[string]bool{
 
 func init() {
 	register(claude.Tool{
-		Name:        "git",
+		Name:        "Git",
 		Description: "Run git commands (read-only operations only in plan mode)",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -95,19 +95,19 @@ func git(input json.RawMessage) Result {
 		Args []string `json:"args"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("git", Error(err.Error()))
+		return newResult("Git", Error(err.Error()))
 	}
 
 	if err := validateGitCommand(args.Args); err != nil {
-		return newResult("git", Error(err.Error()))
+		return newResult("Git", Error(err.Error()))
 	}
 
 	cmd := exec.Command("git", args.Args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return newResult("git", Error(fmt.Sprintf("%v\n%s", err, string(out))))
+		return newResult("Git", Error(fmt.Sprintf("%v\n%s", err, string(out))))
 	}
-	return newResult("git", string(out))
+	return newResult("Git", string(out))
 }
 
 // validateGitCommand checks if a git command is safe to run in plan mode

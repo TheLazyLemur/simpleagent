@@ -20,7 +20,7 @@ var SkillLoader func(name string) (*SkillInfo, error)
 
 func init() {
 	register(claude.Tool{
-		Name:        "invoke_skill",
+		Name:        "InvokeSkill",
 		Description: "Load a skill by name. Use when task matches a skill description.",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -49,20 +49,20 @@ func invokeSkill(input json.RawMessage) Result {
 		Args string `json:"args"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("invoke_skill", Error(err.Error()))
+		return newResult("InvokeSkill", Error(err.Error()))
 	}
 
 	if args.Name == "" {
-		return newResult("invoke_skill", Error("name required"))
+		return newResult("InvokeSkill", Error("name required"))
 	}
 
 	if SkillLoader == nil {
-		return newResult("invoke_skill", Error("skill loader not configured"))
+		return newResult("InvokeSkill", Error("skill loader not configured"))
 	}
 
 	skill, err := SkillLoader(args.Name)
 	if err != nil {
-		return newResult("invoke_skill", Error("skill not found: "+args.Name))
+		return newResult("InvokeSkill", Error("skill not found: "+args.Name))
 	}
 
 	// Set tool restrictions if specified

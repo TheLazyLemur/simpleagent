@@ -12,7 +12,7 @@ func TestTaskTool_RequiresConfig(t *testing.T) {
 	input := json.RawMessage(`{"prompt": "test", "description": "test"}`)
 
 	// when
-	result := Execute("task", input)
+	result := Execute("Task", input)
 
 	// then - should error about missing config
 	if !strings.Contains(result.String(), "error") {
@@ -25,7 +25,7 @@ func TestTaskTool_InvalidJSON(t *testing.T) {
 	input := json.RawMessage(`{invalid}`)
 
 	// when
-	result := Execute("task", input)
+	result := Execute("Task", input)
 
 	// then
 	if !strings.Contains(result.String(), "error") {
@@ -38,7 +38,7 @@ func TestTaskTool_MissingPrompt(t *testing.T) {
 	input := json.RawMessage(`{"description": "test"}`)
 
 	// when
-	result := Execute("task", input)
+	result := Execute("Task", input)
 
 	// then
 	if !strings.Contains(result.String(), "error") {
@@ -51,7 +51,7 @@ func TestTaskTool_MissingDescription(t *testing.T) {
 	input := json.RawMessage(`{"prompt": "test"}`)
 
 	// when
-	result := Execute("task", input)
+	result := Execute("Task", input)
 
 	// then
 	if !strings.Contains(result.String(), "error") {
@@ -66,7 +66,7 @@ func TestTaskTool_InAllTools(t *testing.T) {
 	// then
 	found := false
 	for _, tool := range allTools {
-		if tool.Name == "task" {
+		if tool.Name == "Task" {
 			found = true
 			break
 		}
@@ -83,7 +83,7 @@ func TestTaskTool_HasRequiredSchema(t *testing.T) {
 	// then
 	var found bool
 	for _, tool := range allTools {
-		if tool.Name == "task" {
+		if tool.Name == "Task" {
 			found = true
 			if _, ok := tool.InputSchema.Properties["prompt"]; !ok {
 				t.Error("task tool missing prompt property")

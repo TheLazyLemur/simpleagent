@@ -16,7 +16,7 @@ var RuleMatcher func(filePath string) (string, []string)
 
 func init() {
 	register(claude.Tool{
-		Name:        "read_file",
+		Name:        "ReadFile",
 		Description: "Read contents of a file",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -30,7 +30,7 @@ func init() {
 	}, readFile)
 
 	register(claude.Tool{
-		Name:        "write_file",
+		Name:        "WriteFile",
 		Description: "Create a new file or overwrite an existing file",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -43,7 +43,7 @@ func init() {
 	}, writeFile)
 
 	register(claude.Tool{
-		Name:        "ls",
+		Name:        "Ls",
 		Description: "Run ls on a dir, defaults to ./",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -55,7 +55,7 @@ func init() {
 	}, ls)
 
 	register(claude.Tool{
-		Name:        "mkdir",
+		Name:        "Mkdir",
 		Description: "Create a directory (and parent directories if needed)",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -67,7 +67,7 @@ func init() {
 	}, mkdir)
 
 	register(claude.Tool{
-		Name:        "rm",
+		Name:        "Rm",
 		Description: "Remove a file or directory",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -89,7 +89,7 @@ func readFile(input json.RawMessage) Result {
 	json.Unmarshal(input, &args)
 	data, err := os.ReadFile(args.Path)
 	if err != nil {
-		return newResult("read_file", Error(err.Error()))
+		return newResult("ReadFile", Error(err.Error()))
 	}
 	content := string(data)
 	if args.StartLine != nil || args.EndLine != nil {
@@ -103,10 +103,10 @@ func readFile(input json.RawMessage) Result {
 			end = min(*args.EndLine, len(lines))
 		}
 		if start > end {
-			return newResult("read_file", Error("start_line cannot be greater than end_line"))
+			return newResult("ReadFile", Error("start_line cannot be greater than end_line"))
 		}
 		if start >= len(lines) {
-			return newResult("read_file", Error("start_line is out of range"))
+			return newResult("ReadFile", Error("start_line is out of range"))
 		}
 		content = strings.Join(lines[start:end], "\n")
 	}
@@ -119,7 +119,7 @@ func readFile(input json.RawMessage) Result {
 		}
 	}
 
-	return newResult("read_file", content)
+	return newResult("ReadFile", content)
 }
 
 func writeFile(input json.RawMessage) Result {
@@ -133,19 +133,19 @@ func writeFile(input json.RawMessage) Result {
 	preview := formatContentPreview(args.Content)
 
 	// Request permission before writing
-	allowed, reason, setAcceptAll := RequestPermissionWithDiff("write_file", args.Path, fmt.Sprintf("Write %d bytes", len(args.Content)), preview)
+	allowed, reason, setAcceptAll := RequestPermissionWithDiff("WriteFile", args.Path, fmt.Sprintf("Write %d bytes", len(args.Content)), preview)
 	if setAcceptAll {
 		SetPermissionsMode("accept_all")
 		fmt.Println("\n" + Status("accept-all mode enabled for this session"))
 	}
 	if !allowed {
-		return newResult("write_file", Error(fmt.Sprintf("permission denied: %s", reason)))
+		return newResult("WriteFile", Error(fmt.Sprintf("permission denied: %s", reason)))
 	}
 
 	if err := os.WriteFile(args.Path, []byte(args.Content), 0644); err != nil {
-		return newResult("write_file", Error(err.Error()))
+		return newResult("WriteFile", Error(err.Error()))
 	}
-	return newResult("write_file", fmt.Sprintf("wrote to %s", args.Path))
+	return newResult("WriteFile", fmt.Sprintf("wrote to %s", args.Path))
 }
 
 // formatContentPreview creates a preview of content to be written
@@ -175,9 +175,9 @@ func ls(input json.RawMessage) Result {
 	cmd := exec.Command("ls", args.Path)
 	out, err := cmd.Output()
 	if err != nil {
-		return newResult("ls", Error(err.Error()))
+		return newResult("Ls", Error(err.Error()))
 	}
-	return newResult("ls", string(out))
+	return newResult("Ls", string(out))
 }
 
 func mkdir(input json.RawMessage) Result {
@@ -186,9 +186,9 @@ func mkdir(input json.RawMessage) Result {
 	}
 	json.Unmarshal(input, &args)
 	if err := os.MkdirAll(args.Path, 0755); err != nil {
-		return newResult("mkdir", Error(err.Error()))
+		return newResult("Mkdir", Error(err.Error()))
 	}
-	return newResult("mkdir", fmt.Sprintf("created directory %s", args.Path))
+	return newResult("Mkdir", fmt.Sprintf("created directory %s", args.Path))
 }
 
 func rm(input json.RawMessage) Result {
@@ -203,13 +203,13 @@ func rm(input json.RawMessage) Result {
 	if args.Recursive {
 		details = "Recursive remove (dangerous)"
 	}
-	allowed, reason, setAcceptAll := RequestPermission("rm", args.Path, details)
+	allowed, reason, setAcceptAll := RequestPermission("Rm", args.Path, details)
 	if setAcceptAll {
 		SetPermissionsMode("accept_all")
 		fmt.Println("\n" + Status("accept-all mode enabled for this session"))
 	}
 	if !allowed {
-		return newResult("rm", Error(fmt.Sprintf("permission denied: %s", reason)))
+		return newResult("Rm", Error(fmt.Sprintf("permission denied: %s", reason)))
 	}
 
 	var err error
@@ -219,7 +219,7 @@ func rm(input json.RawMessage) Result {
 		err = os.Remove(args.Path)
 	}
 	if err != nil {
-		return newResult("rm", Error(err.Error()))
+		return newResult("Rm", Error(err.Error()))
 	}
-	return newResult("rm", fmt.Sprintf("removed %s", args.Path))
+	return newResult("Rm", fmt.Sprintf("removed %s", args.Path))
 }

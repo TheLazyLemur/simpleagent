@@ -13,7 +13,7 @@ import (
 
 func init() {
 	register(claude.Tool{
-		Name:        "grep",
+		Name:        "Grep",
 		Description: "Search for text patterns in files",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -47,7 +47,7 @@ func grep(input json.RawMessage) Result {
 		Limit     *int   `json:"limit"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("grep", Error(err.Error()))
+		return newResult("Grep", Error(err.Error()))
 	}
 
 	// Set defaults

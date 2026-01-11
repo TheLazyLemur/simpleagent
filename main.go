@@ -261,11 +261,11 @@ func main() {
 				if block.Type == "tool_use" {
 					result := tools.Execute(block.Name, block.Input)
 					result.Render()
-					if block.Name == "todo_write" {
+					if block.Name == "TodoWrite" {
 						turnsSinceTodoWrite = 0
 					}
 					// Check if user accepted the plan
-					if block.Name == "exit_plan_mode" && strings.Contains(result.String(), `"decision":"Accept"`) {
+					if block.Name == "ExitPlanMode" && strings.Contains(result.String(), `"decision":"Accept"`) {
 						planMode = false
 						fmt.Println("\n" + tools.Status("plan mode off") + " " + tools.Dim("full access"))
 					}

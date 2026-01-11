@@ -1,0 +1,13 @@
+#!/bin/bash
+# On each user prompt, reset codemap check flag to true
+
+input=$(cat)
+session_id=$(echo "$input" | jq -r '.session_id')
+
+sqlite3 ~/.claude/hooks.db <<EOF
+CREATE TABLE IF NOT EXISTS codemap_state (
+  session_id TEXT PRIMARY KEY,
+  requires_check INTEGER DEFAULT 1
+);
+INSERT OR REPLACE INTO codemap_state (session_id, requires_check) VALUES ('$session_id', 1);
+EOF

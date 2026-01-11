@@ -14,7 +14,7 @@ const defaultTimeout = 30 * time.Second
 
 func init() {
 	register(claude.Tool{
-		Name:        "bash",
+		Name:        "Bash",
 		Description: "Run a bash command",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -52,10 +52,10 @@ func bash(input json.RawMessage) Result {
 		Cwd        string   `json:"cwd"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("bash", Error(err.Error()))
+		return newResult("Bash", Error(err.Error()))
 	}
 	if len(args.Args) == 0 {
-		return newResult("bash", Error("args is required"))
+		return newResult("Bash", Error("args is required"))
 	}
 
 	timeout := defaultTimeout

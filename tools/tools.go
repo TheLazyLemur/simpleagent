@@ -37,13 +37,13 @@ func newResult(name, output string) Result {
 var registry = make(map[string]func(json.RawMessage) Result)
 var allTools []claude.Tool
 var readOnlyTools = map[string]bool{
-	"read_file":         true,
-	"ls":                true,
-	"grep":              true,
-	"git":               true, // filtered to read-only ops at execution
-	"glob":              true,
-	"ask_user_question": true,
-	"exit_plan_mode":    true,
+	"ReadFile":        true,
+	"Ls":              true,
+	"Grep":            true,
+	"Git":             true, // filtered to read-only ops at execution
+	"Glob":            true,
+	"AskUserQuestion": true,
+	"ExitPlanMode":    true,
 }
 
 // Skill tool restrictions
@@ -59,7 +59,7 @@ func SetAllowedTools(tools []string) {
 	for _, t := range tools {
 		allowedTools[t] = true
 	}
-	allowedTools["invoke_skill"] = true // always allow
+	allowedTools["InvokeSkill"] = true // always allow
 }
 
 // ClearAllowedTools removes skill tool restrictions

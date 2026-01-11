@@ -28,7 +28,7 @@ var questionAnswers map[string]string
 
 func init() {
 	register(claude.Tool{
-		Name:        "ask_user_question",
+		Name:        "AskUserQuestion",
 		Description: "Ask the user questions to gather preferences, clarify ambiguous instructions, or get decisions on implementation choices.",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -84,7 +84,7 @@ func executeQuestion(input json.RawMessage) Result {
 		Questions []Question `json:"questions"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("ask_user_question", Error(err.Error()))
+		return newResult("AskUserQuestion", Error(err.Error()))
 	}
 	pendingQuestions = args.Questions
 	questionAnswers = make(map[string]string)

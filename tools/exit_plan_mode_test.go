@@ -42,9 +42,9 @@ func TestExitPlanModeResultString(t *testing.T) {
 }
 
 func TestReadOnlyToolsContainsExitPlanMode(t *testing.T) {
-	// Verify exit_plan_mode is in readOnlyTools
-	if _, ok := readOnlyTools["exit_plan_mode"]; !ok {
-		t.Error("exit_plan_mode should be in readOnlyTools")
+	// Verify ExitPlanMode is in readOnlyTools
+	if _, ok := readOnlyTools["ExitPlanMode"]; !ok {
+		t.Error("ExitPlanMode should be in readOnlyTools")
 	}
 }
 
@@ -53,13 +53,13 @@ func TestExitPlanModeToolRegistered(t *testing.T) {
 	allTools := All()
 	found := false
 	for _, tool := range allTools {
-		if tool.Name == "exit_plan_mode" {
+		if tool.Name == "ExitPlanMode" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("exit_plan_mode tool should be registered in All()")
+		t.Error("ExitPlanMode tool should be registered in All()")
 	}
 }
 
@@ -68,20 +68,20 @@ func TestExitPlanModeToolInReadOnly(t *testing.T) {
 	readOnlyToolSet := ReadOnly()
 	found := false
 	for _, tool := range readOnlyToolSet {
-		if tool.Name == "exit_plan_mode" {
+		if tool.Name == "ExitPlanMode" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("exit_plan_mode tool should be available in ReadOnly()")
+		t.Error("ExitPlanMode tool should be available in ReadOnly()")
 	}
 }
 
 func TestExecuteExitPlanMode(t *testing.T) {
-	// Test that Execute returns a result for exit_plan_mode
+	// Test that Execute returns a result for ExitPlanMode
 	input := json.RawMessage(`{"plan":"Test plan"}`)
-	result := Execute("exit_plan_mode", input)
+	result := Execute("ExitPlanMode", input)
 	if result == nil {
 		t.Fatal("Execute should return a result")
 	}

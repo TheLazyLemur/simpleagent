@@ -16,7 +16,7 @@ var SubagentTools []claude.Tool
 
 func init() {
 	// Build subagent tools from registered tools + DoneTool
-	subagentToolNames := []string{"read_file", "ls", "grep", "write_file", "replace_text"}
+	subagentToolNames := []string{"ReadFile", "Ls", "Grep", "WriteFile", "ReplaceText"}
 	for _, t := range allTools {
 		if slices.Contains(subagentToolNames, t.Name) {
 			SubagentTools = append(SubagentTools, t)

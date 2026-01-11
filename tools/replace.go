@@ -11,7 +11,7 @@ import (
 
 func init() {
 	register(claude.Tool{
-		Name:        "replace_text",
+		Name:        "ReplaceText",
 		Description: "Replace text with new text",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -36,31 +36,31 @@ func replaceText(input json.RawMessage) Result {
 	// Read file first to get actual content for comparison
 	data, err := os.ReadFile(args.Path)
 	if err != nil {
-		return newResult("replace_text", Error(fmt.Sprintf("reading: %v", err)))
+		return newResult("ReplaceText", Error(fmt.Sprintf("reading: %v", err)))
 	}
 	content := string(data)
 	updated := strings.Replace(content, args.OldText, args.NewText, 1)
 	if content == updated {
-		return newResult("replace_text", Error("old_text not found"))
+		return newResult("ReplaceText", Error("old_text not found"))
 	}
 
 	// Generate diff from old/new text (not file content) for permission prompt
 	diff := formatDiff(args.OldText, args.NewText)
 
 	// Request permission before replacing
-	allowed, reason, setAcceptAll := RequestPermissionWithDiff("replace_text", args.Path, "Replace text in file", diff)
+	allowed, reason, setAcceptAll := RequestPermissionWithDiff("ReplaceText", args.Path, "Replace text in file", diff)
 	if setAcceptAll {
 		SetPermissionsMode("accept_all")
 		fmt.Println("\n" + Status("accept-all mode enabled for this session"))
 	}
 	if !allowed {
-		return newResult("replace_text", Error(fmt.Sprintf("permission denied: %s", reason)))
+		return newResult("ReplaceText", Error(fmt.Sprintf("permission denied: %s", reason)))
 	}
 
 	if err := os.WriteFile(args.Path, []byte(updated), 0644); err != nil {
-		return newResult("replace_text", Error(fmt.Sprintf("writing: %v", err)))
+		return newResult("ReplaceText", Error(fmt.Sprintf("writing: %v", err)))
 	}
-	return newResult("replace_text", "replaced")
+	return newResult("ReplaceText", "replaced")
 }
 
 // formatDiff creates a unified diff-like view of the change

@@ -11,7 +11,7 @@ func TestDoneTool_ReturnsSignal(t *testing.T) {
 	input := json.RawMessage(`{"summary": "found 3 bugs in auth module"}`)
 
 	// when
-	result := Execute("done", input)
+	result := Execute("Done", input)
 
 	// then
 	if !strings.HasPrefix(result.String(), DoneSignalPrefix) {
@@ -29,7 +29,7 @@ func TestDoneTool_TruncatesLongSummary(t *testing.T) {
 	input, _ := json.Marshal(map[string]string{"summary": longSummary})
 
 	// when
-	result := Execute("done", json.RawMessage(input))
+	result := Execute("Done", json.RawMessage(input))
 
 	// then
 	summary := strings.TrimPrefix(result.String(), DoneSignalPrefix)
@@ -44,7 +44,7 @@ func TestDoneTool_NotInAllTools(t *testing.T) {
 
 	// then - done should not be in main tool list (subagent only)
 	for _, tool := range allTools {
-		if tool.Name == "done" {
+		if tool.Name == "Done" {
 			t.Error("done tool should not be in All() - it's subagent-only")
 		}
 	}
@@ -52,7 +52,7 @@ func TestDoneTool_NotInAllTools(t *testing.T) {
 
 func TestDoneTool_ExecutorRegistered(t *testing.T) {
 	// given/when
-	result := Execute("done", json.RawMessage(`{"summary": "test"}`))
+	result := Execute("Done", json.RawMessage(`{"summary": "test"}`))
 
 	// then - should execute, not return "unknown tool"
 	if result.String() == "unknown tool" {
@@ -65,7 +65,7 @@ func TestDoneTool_EmptySummary(t *testing.T) {
 	input := json.RawMessage(`{"summary": ""}`)
 
 	// when
-	result := Execute("done", input)
+	result := Execute("Done", input)
 
 	// then - should return signal with empty summary
 	expected := DoneSignalPrefix
@@ -79,7 +79,7 @@ func TestDoneTool_InvalidJSON(t *testing.T) {
 	input := json.RawMessage(`{invalid}`)
 
 	// when
-	result := Execute("done", input)
+	result := Execute("Done", input)
 
 	// then - should contain error message
 	if !strings.Contains(result.String(), "error") {

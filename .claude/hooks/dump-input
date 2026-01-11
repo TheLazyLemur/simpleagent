@@ -1,0 +1,9 @@
+#!/bin/bash
+# Dumps raw stdin to /tmp/hook-dump.log
+
+input=$(cat)
+echo "=== $(date '+%H:%M:%S') ===" >> /tmp/hook-dump.log
+echo "$input" >> /tmp/hook-dump.log
+echo "" >> /tmp/hook-dump.log
+
+# Output nothing (valid - means allow)

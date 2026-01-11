@@ -39,7 +39,7 @@ sections:
                   - block:
                       id: "1c"
                       title: "Task tool registration"
-                      code: "register(claude.Tool{Name: \"task\", Description: \"Spawn a subagent to research a question...\"}"
+                      code: "register(claude.Tool{Name: \"Task\", Description: \"Spawn a subagent to research a question...\"}"
                       file: "tools/task.go"
                       line: 32
                     children:
@@ -70,7 +70,7 @@ sections:
                   - block:
                       id: "2b"
                       title: "Limited tool set"
-                      code: "subagentToolNames := []string{\"read_file\", \"ls\", \"grep\", \"write_file\", \"replace_text\"}"
+                      code: "subagentToolNames := []string{\"ReadFile\", \"Ls\", \"Grep\", \"WriteFile\", \"ReplaceText\"}"
                       file: "tools/subagent.go"
                       line: 19
               - text: "Fresh message history with user prompt"
@@ -109,7 +109,7 @@ sections:
           - block:
               id: "3a"
               title: "DoneTool definition"
-              code: "var DoneTool = claude.Tool{Name: \"done\", Description: \"Signal task completion...\"}"
+              code: "var DoneTool = claude.Tool{Name: \"Done\", Description: \"Signal task completion...\"}"
               file: "tools/done.go"
               line: 14
             children:
@@ -118,7 +118,7 @@ sections:
                   - block:
                       id: "3b"
                       title: "Register executor only"
-                      code: "registry[\"done\"] = executeDone"
+                      code: "registry[\"Done\"] = executeDone"
                       file: "tools/done.go"
                       line: 28
                     children:
@@ -127,7 +127,7 @@ sections:
                           - block:
                               id: "3c"
                               title: "Return prefixed signal"
-                              code: "return newResult(\"done\", fmt.Sprintf(\"%s%s\", DoneSignalPrefix, args.Summary))"
+                              code: "return newResult(\"Done\", fmt.Sprintf(\"%s%s\", DoneSignalPrefix, args.Summary))"
                               file: "tools/done.go"
                               line: 43
       - text: "RunSubagent checks for done signal prefix in results"

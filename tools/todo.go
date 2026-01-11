@@ -17,7 +17,7 @@ var todos []Todo
 
 func init() {
 	register(claude.Tool{
-		Name: "todo_write",
+		Name: "TodoWrite",
 		Description: `
 <!--
 name: 'Tool Description: todo_write'
@@ -242,7 +242,7 @@ func executeTodo(input json.RawMessage) Result {
 		Todos []Todo `json:"todos"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("todo_write", Error(err.Error()))
+		return newResult("TodoWrite", Error(err.Error()))
 	}
 	todos = args.Todos
 	return todoResult{output: fmt.Sprintf(`{"success":true,"count":%d}`, len(args.Todos))}

@@ -7,12 +7,12 @@ import (
 func TestSubagentTools_ContainsExpectedTools(t *testing.T) {
 	// given
 	expected := map[string]bool{
-		"read_file":    true,
-		"ls":           true,
-		"grep":         true,
-		"write_file":   true,
-		"replace_text": true,
-		"done":         true,
+		"ReadFile":    true,
+		"Ls":          true,
+		"Grep":        true,
+		"WriteFile":   true,
+		"ReplaceText": true,
+		"Done":        true,
 	}
 
 	// when
@@ -34,7 +34,7 @@ func TestSubagentTools_ContainsExpectedTools(t *testing.T) {
 
 func TestSubagentTools_DoesNotContainDangerousTools(t *testing.T) {
 	// given
-	dangerous := []string{"bash", "rm", "mkdir", "git"}
+	dangerous := []string{"Bash", "Rm", "Mkdir", "Git"}
 
 	// when/then
 	for _, tool := range SubagentTools {
@@ -50,7 +50,7 @@ func TestSubagentTools_HasDoneTool(t *testing.T) {
 	// given/when
 	hasDone := false
 	for _, tool := range SubagentTools {
-		if tool.Name == "done" {
+		if tool.Name == "Done" {
 			hasDone = true
 			break
 		}

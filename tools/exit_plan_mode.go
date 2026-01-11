@@ -32,7 +32,7 @@ type ExitPlanModeDecision struct {
 
 func init() {
 	register(claude.Tool{
-		Name:        "exit_plan_mode",
+		Name:        "ExitPlanMode",
 		Description: "Present a plan for user approval and potentially exit plan mode. Pass your complete plan as the 'plan' parameter. User sees the plan and chooses: Accept (exit plan mode, proceed), Deny (stay in plan mode, revise), or Continue (stay in plan mode, keep exploring).",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -72,7 +72,7 @@ func (r exitPlanModeResult) Render() {
 func executeExitPlanMode(input json.RawMessage) Result {
 	var args ExitPlanModeInput
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("exit_plan_mode", Error(err.Error()))
+		return newResult("ExitPlanMode", Error(err.Error()))
 	}
 
 	// Display the plan and get user decision

@@ -2,6 +2,13 @@
 # Claude Code hook - warns about stale codemaps
 # Handles: PostToolUse (per-file) and Stop (git diff summary)
 
+input=$(cat)
+session_id=$(echo "$input" | jq -r '.session_id')
+
+# Check if already marked as done for this session
+requires_check=$(sqlite3 ~/.claude/hooks.db "SELECT requires_check FROM codemap_state WHERE session_id='$session_id'" 2>/dev/null)
+[ "$requires_check" = "0" ] && exit 0
+
 is_skip_file() {
   local f="$1"
   [[ "$f" == CODEMAP_* ]] && return 0
@@ -18,7 +25,7 @@ find_codemaps() {
 }
 
 # Detect hook type
-file=$(jq -r '.tool_input.file_path // empty' 2>/dev/null)
+file=$(echo "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 
 if [ -n "$file" ]; then
   # PostToolUse: single file check
@@ -57,11 +64,8 @@ else
   list=$(echo "$stale_maps" | tr '\n' ', ' | sed 's/,$//')
   cat <<EOF
 {
-  "continue": true,
-  "hookSpecificOutput": {
-    "hookEventName": "Stop",
-    "additionalContext": "STALE CODEMAPS: Consider updating: $list"
-  }
+  "decision": "block",
+  "reason": "Modified files referenced in: $list. Check if documented code blocks changed. If yes, update codemap. If codemap is current, run: sqlite3 ~/.claude/hooks.db \"UPDATE codemap_state SET requires_check=0 WHERE session_id='$session_id'\""
 }
 EOF
 fi

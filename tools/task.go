@@ -30,7 +30,7 @@ func ResetSubagentConfig() {
 
 func init() {
 	register(claude.Tool{
-		Name:        "task",
+		Name:        "Task",
 		Description: "Spawn a subagent to research a question. Blocks until complete.",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -59,23 +59,23 @@ func task(input json.RawMessage) Result {
 		Description string `json:"description"`
 	}
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("task", Error(err.Error()))
+		return newResult("Task", Error(err.Error()))
 	}
 
 	if args.Prompt == "" {
-		return newResult("task", Error("prompt required"))
+		return newResult("Task", Error("prompt required"))
 	}
 	if args.Description == "" {
-		return newResult("task", Error("description required"))
+		return newResult("Task", Error("description required"))
 	}
 
 	if subagentClient == nil {
-		return newResult("task", Error("subagent not configured"))
+		return newResult("Task", Error("subagent not configured"))
 	}
 
 	summary, err := RunSubagent(subagentClient, subagentModel, subagentSystemPrompt, args.Prompt)
 	if err != nil {
-		return newResult("task", Error(err.Error()))
+		return newResult("Task", Error(err.Error()))
 	}
 
 	return taskResult{description: args.Description, output: summary}

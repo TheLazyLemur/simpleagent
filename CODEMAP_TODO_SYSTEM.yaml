@@ -1,20 +1,20 @@
 title: "Todo System Flow"
 created: "2026-01-11T00:00:00Z"
-summary: "Task tracking: todo_write tool -> state management -> session persistence -> reminder injection"
+summary: "Task tracking: TodoWrite tool -> state management -> session persistence -> reminder injection"
 description: |
   ## Overview
   The todo system provides task tracking for multi-step operations. Agent uses
-  todo_write to manage tasks [1a], state stored in package-level slice [1b],
+  TodoWrite to manage tasks [1a], state stored in package-level slice [1b],
   persisted via session JSON [2a-2c], with reminder nudges after 3 turns [3a-3c].
 
   ## Key Flow
-  1. Tool execution: todo_write replaces full list, renders via todoResult [1a-1c]
+  1. Tool execution: TodoWrite replaces full list, renders via todoResult [1a-1c]
   2. Session persistence: GetTodos/SetTodos for save/load, SessionFile includes todos [2a-2c]
-  3. Reminder injection: turnsSinceTodoWrite counter, HasPending check, nudge after 3 turns [3a-3d]
+  3. Reminder injection: turnsSinceTodoWrite counter, HasPending check, nudge after 3 turns without TodoWrite [3a-3d]
 
 sections:
   - id: 1
-    title: "todo_write Tool"
+    title: "TodoWrite Tool"
     summary: "Tool registration, execution, and state management"
     tree:
       - text: "Tool registered in init() with schema for todos array"
@@ -24,7 +24,7 @@ sections:
               title: "Tool registration"
               code: |
                 register(claude.Tool{
-                    Name: "todo_write",
+                    Name: "TodoWrite",
                     Description: `Use this tool to create and manage a structured task list...`,
                     InputSchema: claude.InputSchema{...},
                 }, executeTodo)
@@ -53,7 +53,7 @@ sections:
                               code: "var todos []Todo"
                               file: "tools/todo.go"
                               line: 16
-      - text: "executeTodo replaces entire list (no partial updates)"
+      - text: "executeTodo handler replaces entire list (no partial updates)"
         children:
           - block:
               id: "1d"
@@ -64,7 +64,7 @@ sections:
                         Todos []Todo `json:"todos"`
                     }
                     if err := json.Unmarshal(input, &args); err != nil {
-                        return newResult("todo_write", Error(err.Error()))
+                        return newResult("TodoWrite", Error(err.Error()))
                     }
                     todos = args.Todos
                     return todoResult{output: fmt.Sprintf(`{"success":true,"count":%d}`, len(args.Todos))}
@@ -147,7 +147,7 @@ sections:
 
   - id: 3
     title: "Reminder System"
-    summary: "Nudge injection after 3 turns without todo_write"
+    summary: "Nudge injection after 3 turns without TodoWrite"
     tree:
       - text: "turnsSinceTodoWrite tracks turns in main.go"
         children:
@@ -158,13 +158,13 @@ sections:
               file: "main.go"
               line: 100
             children:
-              - text: "Reset to 0 when todo_write executed"
+              - text: "Reset to 0 when TodoWrite executed"
                 children:
                   - block:
                       id: "3b"
                       title: "Counter reset"
                       code: |
-                        if block.Name == "todo_write" {
+                        if block.Name == "TodoWrite" {
                             turnsSinceTodoWrite = 0
                         }
                       file: "main.go"
@@ -202,7 +202,7 @@ sections:
                 func todoReminder(state *AgentState) string {
                     if state.TurnsSinceTodoWrite >= 3 && tools.HasPending() {
                         return `<system-reminder>
-                The todo_write tool hasn't been used recently...
+                The TodoWrite tool hasn't been used recently...
                 </system-reminder>`
                     }
                     return ""

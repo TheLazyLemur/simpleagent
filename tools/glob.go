@@ -60,7 +60,7 @@ func plural(n int) string {
 
 func init() {
 	register(claude.Tool{
-		Name:        "glob",
+		Name:        "Glob",
 		Description: "Find files matching glob patterns",
 		InputSchema: claude.InputSchema{
 			Type: "object",
@@ -94,7 +94,7 @@ func init() {
 func glob(input json.RawMessage) Result {
 	var args globInput
 	if err := json.Unmarshal(input, &args); err != nil {
-		return newResult("glob", Error(err.Error()))
+		return newResult("Glob", Error(err.Error()))
 	}
 
 	if args.Path == "" {
@@ -102,7 +102,7 @@ func glob(input json.RawMessage) Result {
 	}
 
 	if args.Pattern == "" {
-		return newResult("glob", Error("pattern is required"))
+		return newResult("Glob", Error("pattern is required"))
 	}
 
 	limit := 100
@@ -177,7 +177,7 @@ func glob(input json.RawMessage) Result {
 	})
 
 	if err != nil {
-		return newResult("glob", Error(err.Error()))
+		return newResult("Glob", Error(err.Error()))
 	}
 
 	sort.Strings(matches)
