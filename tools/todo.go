@@ -13,8 +13,6 @@ type Todo struct {
 	Status     string `json:"status"` // pending, in_progress, completed
 }
 
-var todos []Todo
-
 func init() {
 	register(claude.Tool{
 		Name: "TodoWrite",
@@ -235,7 +233,7 @@ type todoResult struct {
 }
 
 func (r todoResult) String() string { return r.output }
-func (r todoResult) Render()        { RenderTodos(todos) }
+func (r todoResult) Render()        { RenderTodos(*configTodos) }
 
 func executeTodo(input json.RawMessage) Result {
 	var args struct {
@@ -244,23 +242,16 @@ func executeTodo(input json.RawMessage) Result {
 	if err := json.Unmarshal(input, &args); err != nil {
 		return newResult("TodoWrite", Error(err.Error()))
 	}
-	todos = args.Todos
+	*configTodos = args.Todos
 	return todoResult{output: fmt.Sprintf(`{"success":true,"count":%d}`, len(args.Todos))}
-}
-
-// GetTodos returns current todos for session persistence
-func GetTodos() []Todo {
-	return todos
-}
-
-// SetTodos restores todos from session
-func SetTodos(t []Todo) {
-	todos = t
 }
 
 // HasPending returns true if any todos are pending or in_progress
 func HasPending() bool {
-	for _, t := range todos {
+	if configTodos == nil {
+		return false
+	}
+	for _, t := range *configTodos {
 		if t.Status == "pending" || t.Status == "in_progress" {
 			return true
 		}

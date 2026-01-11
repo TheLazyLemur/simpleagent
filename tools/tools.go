@@ -9,6 +9,7 @@ import (
 )
 
 var globalMCPClients *MCPClients
+var configTodos *[]Todo
 
 // SetMCPClients wires MCP integration
 func SetMCPClients(c *MCPClients) {
@@ -22,6 +23,7 @@ type Config struct {
 	RuleMatcher     func(string) (string, []string)
 	SkillLoader     func(string) (*SkillInfo, error)
 	Subagent        *SubagentConfig
+	Todos           *[]Todo // pointer so tool can mutate
 }
 
 // SubagentConfig holds subagent/task tool configuration
@@ -40,6 +42,7 @@ func Init(cfg Config) {
 	}
 	RuleMatcher = cfg.RuleMatcher
 	SkillLoader = cfg.SkillLoader
+	configTodos = cfg.Todos
 	if cfg.Subagent != nil {
 		subagentClient = cfg.Subagent.Client
 		subagentModel = cfg.Subagent.Model

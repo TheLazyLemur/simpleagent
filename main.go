@@ -71,8 +71,9 @@ func makeSkillLoader() func(string) (*tools.SkillInfo, error) {
 }
 
 var (
-	baseURL = getEnvOrDefault("ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic")
-	model   = getEnvOrDefault("ANTHROPIC_MODEL", "MiniMax-M2.1")
+	baseURL      = getEnvOrDefault("ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic")
+	model        = getEnvOrDefault("ANTHROPIC_MODEL", "MiniMax-M2.1")
+	sessionTodos []tools.Todo
 )
 
 var mdRenderer *glamour.TermRenderer
@@ -124,7 +125,7 @@ func main() {
 			os.Exit(1)
 		}
 		messages = sess.Messages
-		tools.SetTodos(sess.Todos)
+		sessionTodos = sess.Todos
 		planMode = sess.PlanMode
 		sessionID = sess.Meta.ID
 		if sess.PermissionsMode != "" {
@@ -168,6 +169,7 @@ func main() {
 		PermissionsMode: permissionsMode,
 		RuleMatcher:     GetMatchingRules,
 		SkillLoader:     makeSkillLoader(),
+		Todos:           &sessionTodos,
 		Subagent: &tools.SubagentConfig{
 			Client:       client,
 			Model:        model,
@@ -301,7 +303,7 @@ func main() {
 		}
 
 		if sessionID != "" {
-			saveSession(sessionID, messages, tools.GetTodos(), planMode, tools.GetPermissionsMode())
+			saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())
 		}
 		turnsSinceTodoWrite++
 	}
