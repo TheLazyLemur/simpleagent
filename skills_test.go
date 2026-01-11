@@ -50,7 +50,7 @@ func TestLoadSkill(t *testing.T) {
 		t.Error("content is empty")
 	}
 
-	expectedDir := filepath.Join(".claude", "skills", "test")
+	_ = filepath.Join(".claude", "skills", "test") // suppress unused
 	if !filepath.IsAbs(skill.Dir) {
 		t.Logf("skill dir: %s", skill.Dir)
 	}
