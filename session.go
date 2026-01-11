@@ -41,7 +41,7 @@ func sessionPath(id string) string {
 	return filepath.Join(sessionDir, id+".json")
 }
 
-func saveSession(id string, messages []claude.MessageParam, todos []tools.Todo, planMode bool, permissionsMode string) {
+func saveSession(id string, messages []claude.MessageParam, todos []tools.Todo, planMode bool, permissionsMode string) error {
 	sess := SessionFile{
 		Meta: SessionMeta{
 			ID:        id,
@@ -60,8 +60,11 @@ func saveSession(id string, messages []claude.MessageParam, todos []tools.Todo, 
 		sess.Meta.CreatedAt = time.Now()
 	}
 
-	data, _ := json.MarshalIndent(sess, "", "  ")
-	os.WriteFile(sessionPath(id), data, 0644)
+	data, err := json.MarshalIndent(sess, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(sessionPath(id), data, 0644)
 }
 
 func loadSession(id string) (*SessionFile, error) {
@@ -70,7 +73,9 @@ func loadSession(id string) (*SessionFile, error) {
 		return nil, err
 	}
 	var sess SessionFile
-	json.Unmarshal(data, &sess)
+	if err := json.Unmarshal(data, &sess); err != nil {
+		return nil, err
+	}
 	return &sess, nil
 }
 
@@ -137,6 +142,9 @@ func deleteSession(id string) {
 		fmt.Println(tools.Error(fmt.Sprintf("session %s not found", id)))
 		return
 	}
-	os.Remove(path)
+	if err := os.Remove(path); err != nil {
+		fmt.Println(tools.Error(fmt.Sprintf("delete failed: %v", err)))
+		return
+	}
 	fmt.Println(tools.Success("deleted " + id))
 }

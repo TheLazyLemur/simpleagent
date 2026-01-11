@@ -151,7 +151,10 @@ sections:
           - block:
               id: "2e"
               title: "saveSession call"
-              code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
+              code: |
+                if err := saveSession(...); err != nil {
+                    fmt.Println(tools.Error(...))
+                }
               file: "main.go"
               line: 312
 

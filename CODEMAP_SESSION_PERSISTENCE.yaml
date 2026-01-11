@@ -86,8 +86,9 @@ sections:
                               id: "2c"
                               title: "Write JSON"
                               code: |
-                                data, _ := json.MarshalIndent(sess, "", "  ")
-                                os.WriteFile(sessionPath(id), data, 0644)
+                                data, err := json.MarshalIndent(sess, "", "  ")
+                                if err != nil { return err }
+                                return os.WriteFile(sessionPath(id), data, 0644)
                               file: "session.go"
                               line: 63
       - text: "Called after agentic loop - uses sessionTodos directly (main.go owns state)"
@@ -95,7 +96,10 @@ sections:
           - block:
               id: "2d"
               title: "Save call site"
-              code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
+              code: |
+                if err := saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode()); err != nil {
+                    fmt.Println(tools.Error(fmt.Sprintf("save failed: %v", err)))
+                }
               file: "main.go"
               line: 312
 
@@ -315,6 +319,9 @@ sections:
           - block:
               id: "7d"
               title: "Direct save"
-              code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
+              code: |
+                if err := saveSession(...); err != nil {
+                    fmt.Println(tools.Error(...))
+                }
               file: "main.go"
               line: 312

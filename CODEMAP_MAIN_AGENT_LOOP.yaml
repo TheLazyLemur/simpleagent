@@ -345,7 +345,10 @@ sections:
           - block:
               id: "5a"
               title: "Save session"
-              code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
+              code: |
+                if err := saveSession(...); err != nil {
+                    fmt.Println(tools.Error(...))
+                }
               file: "main.go"
               line: 312
             children:

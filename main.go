@@ -309,7 +309,9 @@ func main() {
 		}
 
 		if sessionID != "" {
-			saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())
+			if err := saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode()); err != nil {
+				fmt.Println(tools.Error(fmt.Sprintf("save failed: %v", err)))
+			}
 		}
 		turnsSinceTodoWrite++
 	}
