@@ -30,13 +30,6 @@ func init() {
 	}, grep)
 }
 
-type grepResult struct {
-	output string
-}
-
-func (r grepResult) String() string { return r.output }
-func (r grepResult) Render()        { fmt.Print(r.output) }
-
 func grep(input json.RawMessage) Result {
 	var args struct {
 		Pattern   string `json:"pattern"`
@@ -144,7 +137,7 @@ func grep(input json.RawMessage) Result {
 		}
 	}
 
-	return grepResult{output: sb.String()}
+	return rawResult{output: sb.String()}
 }
 
 func searchFile(path, pattern string, context int) []string {

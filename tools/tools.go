@@ -34,6 +34,12 @@ func newResult(name, output string) Result {
 	return toolResult{name: name, output: output}
 }
 
+// rawResult prints output directly without tool badge (for bash, grep, etc.)
+type rawResult struct{ output string }
+
+func (r rawResult) String() string { return r.output }
+func (r rawResult) Render()        { fmt.Print(r.output) }
+
 var registry = make(map[string]func(json.RawMessage) Result)
 var allTools []claude.Tool
 var readOnlyTools = map[string]bool{

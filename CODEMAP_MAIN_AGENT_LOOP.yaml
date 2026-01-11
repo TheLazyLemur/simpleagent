@@ -265,7 +265,7 @@ sections:
               title: "Execute entry"
               code: "func Execute(name string, input json.RawMessage) Result {"
               file: "tools/tools.go"
-              line: 90
+              line: 96
             children:
               - text: "Checks skill tool restrictions"
                 children:
@@ -274,7 +274,7 @@ sections:
                       title: "Skill check"
                       code: "if allowedTools != nil && !allowedTools[name] {"
                       file: "tools/tools.go"
-                      line: 92
+                      line: 98
               - text: "Looks up local tool in registry"
                 children:
                   - block:
@@ -282,7 +282,7 @@ sections:
                       title: "Registry lookup"
                       code: "if fn, ok := registry[name]; ok {"
                       file: "tools/tools.go"
-                      line: 95
+                      line: 101
               - text: "Falls back to MCP server tools"
                 children:
                   - block:
@@ -290,7 +290,7 @@ sections:
                       title: "MCP fallback"
                       code: "if result, found := globalMCPClients.Execute(context.Background(), name, input); found {"
                       file: "tools/tools.go"
-                      line: 100
+                      line: 106
 
   - id: 5
     title: "Session Persistence"

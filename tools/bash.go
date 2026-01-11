@@ -38,13 +38,6 @@ func init() {
 	}, bash)
 }
 
-type bashResult struct {
-	output string
-}
-
-func (r bashResult) String() string { return r.output }
-func (r bashResult) Render()        { fmt.Print(r.output) }
-
 func bash(input json.RawMessage) Result {
 	var args struct {
 		Args       []string `json:"args"`
@@ -85,7 +78,5 @@ func bash(input json.RawMessage) Result {
 		}
 	}
 
-	return bashResult{
-		output: fmt.Sprintf("%s\n%s", string(out), Status(fmt.Sprintf("exit code: %d", exitCode))),
-	}
+	return rawResult{output: fmt.Sprintf("%s\n%s", string(out), Status(fmt.Sprintf("exit code: %d", exitCode)))}
 }

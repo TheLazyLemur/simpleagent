@@ -94,7 +94,7 @@ sections:
               title: "All tools merged"
               code: "return append(allTools, globalMCPClients.Tools()...)"
               file: "tools/tools.go"
-              line: 75
+              line: 81
             children:
               - text: "MCPClients.Tools() converts mcp.Tool to claude.Tool, prefixes with server name"
                 children:
@@ -134,7 +134,7 @@ sections:
                       title: "Local registry check"
                       code: "if fn, ok := registry[name]; ok {"
                       file: "tools/tools.go"
-                      line: 95
+                      line: 101
                     children:
                       - text: "Fallback to MCP if not found locally"
                         children:
@@ -143,7 +143,7 @@ sections:
                               title: "MCP fallback"
                               code: "if result, found := globalMCPClients.Execute(context.Background(), name, input); found {"
                               file: "tools/tools.go"
-                              line: 100
+                              line: 106
                           - text: "Strip prefix, find server with matching tool"
                             children:
                               - block:
