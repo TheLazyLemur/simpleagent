@@ -31,7 +31,9 @@ func replaceText(input json.RawMessage) Result {
 		OldText string `json:"old_text"`
 		NewText string `json:"new_text"`
 	}
-	json.Unmarshal(input, &args)
+	if err := json.Unmarshal(input, &args); err != nil {
+		return newResult("ReplaceText", Error(fmt.Sprintf("invalid input: %v", err)))
+	}
 
 	// Read file first to get actual content for comparison
 	data, err := os.ReadFile(args.Path)

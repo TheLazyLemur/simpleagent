@@ -86,7 +86,9 @@ func readFile(input json.RawMessage) Result {
 		StartLine *int   `json:"start_line"`
 		EndLine   *int   `json:"end_line"`
 	}
-	json.Unmarshal(input, &args)
+	if err := json.Unmarshal(input, &args); err != nil {
+		return newResult("ReadFile", Error(fmt.Sprintf("invalid input: %v", err)))
+	}
 	data, err := os.ReadFile(args.Path)
 	if err != nil {
 		return newResult("ReadFile", Error(err.Error()))
@@ -127,7 +129,9 @@ func writeFile(input json.RawMessage) Result {
 		Path    string `json:"path"`
 		Content string `json:"content"`
 	}
-	json.Unmarshal(input, &args)
+	if err := json.Unmarshal(input, &args); err != nil {
+		return newResult("WriteFile", Error(fmt.Sprintf("invalid input: %v", err)))
+	}
 
 	// Generate content preview for permission prompt
 	preview := formatContentPreview(args.Content)
@@ -155,7 +159,9 @@ func formatContentPreview(content string) string {
 
 func ls(input json.RawMessage) Result {
 	var args struct{ Path string }
-	json.Unmarshal(input, &args)
+	if err := json.Unmarshal(input, &args); err != nil {
+		return newResult("Ls", Error(fmt.Sprintf("invalid input: %v", err)))
+	}
 	cmd := exec.Command("ls", args.Path)
 	out, err := cmd.Output()
 	if err != nil {
@@ -168,7 +174,9 @@ func mkdir(input json.RawMessage) Result {
 	var args struct {
 		Path string `json:"path"`
 	}
-	json.Unmarshal(input, &args)
+	if err := json.Unmarshal(input, &args); err != nil {
+		return newResult("Mkdir", Error(fmt.Sprintf("invalid input: %v", err)))
+	}
 	if err := os.MkdirAll(args.Path, 0755); err != nil {
 		return newResult("Mkdir", Error(err.Error()))
 	}
@@ -180,7 +188,9 @@ func rm(input json.RawMessage) Result {
 		Path      string `json:"path"`
 		Recursive bool   `json:"recursive"`
 	}
-	json.Unmarshal(input, &args)
+	if err := json.Unmarshal(input, &args); err != nil {
+		return newResult("Rm", Error(fmt.Sprintf("invalid input: %v", err)))
+	}
 
 	// Request permission with danger warning
 	details := "Remove file"

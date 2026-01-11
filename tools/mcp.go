@@ -108,7 +108,9 @@ func (mc *MCPClients) Execute(ctx context.Context, name string, input json.RawMe
 func executeMCPTool(ctx context.Context, srv *mcpServer, name string, input json.RawMessage) string {
 	var args map[string]any
 	if len(input) > 0 {
-		json.Unmarshal(input, &args)
+		if err := json.Unmarshal(input, &args); err != nil {
+			return fmt.Sprintf("error: invalid input: %v", err)
+		}
 	}
 
 	result, err := srv.client.CallTool(ctx, mcp.CallToolRequest{
