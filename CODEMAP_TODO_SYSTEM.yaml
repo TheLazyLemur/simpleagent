@@ -1,0 +1,259 @@
+title: "Todo System Flow"
+created: "2026-01-11T00:00:00Z"
+summary: "Task tracking: todo_write tool -> state management -> session persistence -> reminder injection"
+description: |
+  ## Overview
+  The todo system provides task tracking for multi-step operations. Agent uses
+  todo_write to manage tasks [1a], state stored in package-level slice [1b],
+  persisted via session JSON [2a-2c], with reminder nudges after 3 turns [3a-3c].
+
+  ## Key Flow
+  1. Tool execution: todo_write replaces full list, renders via todoResult [1a-1c]
+  2. Session persistence: GetTodos/SetTodos for save/load, SessionFile includes todos [2a-2c]
+  3. Reminder injection: turnsSinceTodoWrite counter, HasPending check, nudge after 3 turns [3a-3d]
+
+sections:
+  - id: 1
+    title: "todo_write Tool"
+    summary: "Tool registration, execution, and state management"
+    tree:
+      - text: "Tool registered in init() with schema for todos array"
+        children:
+          - block:
+              id: "1a"
+              title: "Tool registration"
+              code: |
+                register(claude.Tool{
+                    Name: "todo_write",
+                    Description: `Use this tool to create and manage a structured task list...`,
+                    InputSchema: claude.InputSchema{...},
+                }, executeTodo)
+              file: "tools/todo.go"
+              line: 19
+            children:
+              - text: "Todo struct defines task with content, active_form, status"
+                children:
+                  - block:
+                      id: "1b"
+                      title: "Todo struct"
+                      code: |
+                        type Todo struct {
+                            Content    string `json:"content"`
+                            ActiveForm string `json:"active_form"`
+                            Status     string `json:"status"` // pending, in_progress, completed
+                        }
+                      file: "tools/todo.go"
+                      line: 10
+                    children:
+                      - text: "Package-level slice stores current todos"
+                        children:
+                          - block:
+                              id: "1c"
+                              title: "State storage"
+                              code: "var todos []Todo"
+                              file: "tools/todo.go"
+                              line: 16
+      - text: "executeTodo replaces entire list (no partial updates)"
+        children:
+          - block:
+              id: "1d"
+              title: "executeTodo"
+              code: |
+                func executeTodo(input json.RawMessage) Result {
+                    var args struct {
+                        Todos []Todo `json:"todos"`
+                    }
+                    if err := json.Unmarshal(input, &args); err != nil {
+                        return newResult("todo_write", Error(err.Error()))
+                    }
+                    todos = args.Todos
+                    return todoResult{output: fmt.Sprintf(`{"success":true,"count":%d}`, len(args.Todos))}
+                }
+              file: "tools/todo.go"
+              line: 240
+            children:
+              - text: "Returns todoResult which renders via RenderTodos"
+                children:
+                  - block:
+                      id: "1e"
+                      title: "todoResult"
+                      code: |
+                        type todoResult struct {
+                            output string
+                        }
+                        func (r todoResult) String() string { return r.output }
+                        func (r todoResult) Render()        { RenderTodos(todos) }
+                      file: "tools/todo.go"
+                      line: 233
+
+  - id: 2
+    title: "State & Persistence"
+    summary: "GetTodos/SetTodos for session save/load"
+    tree:
+      - text: "GetTodos returns slice for session save"
+        children:
+          - block:
+              id: "2a"
+              title: "GetTodos"
+              code: |
+                func GetTodos() []Todo {
+                    return todos
+                }
+              file: "tools/todo.go"
+              line: 252
+            children:
+              - text: "SetTodos restores from session on resume"
+                children:
+                  - block:
+                      id: "2b"
+                      title: "SetTodos"
+                      code: |
+                        func SetTodos(t []Todo) {
+                            todos = t
+                        }
+                      file: "tools/todo.go"
+                      line: 257
+      - text: "SessionFile includes todos in JSON"
+        children:
+          - block:
+              id: "2c"
+              title: "SessionFile.Todos"
+              code: |
+                type SessionFile struct {
+                    Meta            SessionMeta           `json:"meta"`
+                    Messages        []claude.MessageParam `json:"messages"`
+                    Todos           []tools.Todo          `json:"todos,omitempty"`
+                    ...
+                }
+              file: "session.go"
+              line: 27
+            children:
+              - text: "saveSession persists todos"
+                children:
+                  - block:
+                      id: "2d"
+                      title: "saveSession call"
+                      code: "saveSession(sessionID, messages, tools.GetTodos(), planMode, tools.GetPermissionsMode())"
+                      file: "main.go"
+                      line: 298
+              - text: "loadSession restores todos on resume"
+                children:
+                  - block:
+                      id: "2e"
+                      title: "SetTodos on resume"
+                      code: "tools.SetTodos(sess.Todos)"
+                      file: "main.go"
+                      line: 112
+
+  - id: 3
+    title: "Reminder System"
+    summary: "Nudge injection after 3 turns without todo_write"
+    tree:
+      - text: "turnsSinceTodoWrite tracks turns in main.go"
+        children:
+          - block:
+              id: "3a"
+              title: "Counter init"
+              code: "turnsSinceTodoWrite := 0"
+              file: "main.go"
+              line: 100
+            children:
+              - text: "Reset to 0 when todo_write executed"
+                children:
+                  - block:
+                      id: "3b"
+                      title: "Counter reset"
+                      code: |
+                        if block.Name == "todo_write" {
+                            turnsSinceTodoWrite = 0
+                        }
+                      file: "main.go"
+                      line: 264
+              - text: "Increment after each user turn"
+                children:
+                  - block:
+                      id: "3c"
+                      title: "Counter increment"
+                      code: "turnsSinceTodoWrite++"
+                      file: "main.go"
+                      line: 300
+      - text: "HasPending checks for incomplete todos"
+        children:
+          - block:
+              id: "3d"
+              title: "HasPending"
+              code: |
+                func HasPending() bool {
+                    for _, t := range todos {
+                        if t.Status == "pending" || t.Status == "in_progress" {
+                            return true
+                        }
+                    }
+                    return false
+                }
+              file: "tools/todo.go"
+              line: 262
+      - text: "todoReminder fires when >= 3 turns AND has pending"
+        children:
+          - block:
+              id: "3e"
+              title: "todoReminder"
+              code: |
+                func todoReminder(state *AgentState) string {
+                    if state.TurnsSinceTodoWrite >= 3 && tools.HasPending() {
+                        return `<system-reminder>
+                The todo_write tool hasn't been used recently...
+                </system-reminder>`
+                    }
+                    return ""
+                }
+              file: "reminders.go"
+              line: 38
+            children:
+              - text: "Injected via GetReminders into tool result"
+                children:
+                  - block:
+                      id: "3f"
+                      title: "GetReminders"
+                      code: |
+                        state := &AgentState{
+                            PlanMode:            planMode,
+                            TurnsSinceTodoWrite: turnsSinceTodoWrite,
+                        }
+                        if reminders := GetReminders(state); reminders != "" {
+                            last := &toolResults[len(toolResults)-1]
+                            last.Content += "\n" + reminders
+                        }
+                      file: "main.go"
+                      line: 285
+
+  - id: 4
+    title: "Display"
+    summary: "RenderTodos formats output with status icons"
+    tree:
+      - text: "RenderTodos prints todos with checkboxes and styling"
+        children:
+          - block:
+              id: "4a"
+              title: "RenderTodos"
+              code: |
+                func RenderTodos(t []Todo) {
+                    fmt.Println()
+                    fmt.Println(Status("todos"))
+                    for _, todo := range t {
+                        text := todo.Content
+                        if todo.Status == "in_progress" && todo.ActiveForm != "" {
+                            text = todo.ActiveForm
+                        }
+                        styled := text
+                        switch todo.Status {
+                        case "completed":
+                            styled = Dim(text)
+                        case "in_progress":
+                            styled = Highlight(text)
+                        }
+                        fmt.Printf("  %s %s\n", Checkbox(todo.Status), styled)
+                    }
+                }
+              file: "tools/todo.go"
+              line: 272

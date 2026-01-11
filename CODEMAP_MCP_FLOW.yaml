@@ -1,0 +1,162 @@
+title: "MCP Tool Integration Flow"
+created: "2026-01-11T00:00:00Z"
+summary: "How MCP servers are configured, connected, and tools executed"
+description: |
+  ## Overview
+  MCP (Model Context Protocol) allows external tool servers to extend the agent.
+  Config loading [1a] reads server definitions, then [2a] spawns stdio processes,
+  [2c] fetches available tools, and [3a] merges them with local tools.
+
+  Tool names use format `server__tool` (e.g., `homeai__list_items`) to avoid collisions.
+
+  Execution at [4a] checks local registry first, then falls back to MCP at [4b].
+
+sections:
+  - id: 1
+    title: "Configuration"
+    summary: "Load MCP server configs from .simpleagent/config.json"
+    tree:
+      - text: "Config struct includes MCPServers array"
+        children:
+          - block:
+              id: "1a"
+              title: "MCPServers config field"
+              code: "MCPServers  []tools.MCPServerConfig `json:\"mcp_servers\"`"
+              file: "config.go"
+              line: 40
+            children:
+              - text: "main.go calls LoadConfig on startup"
+                children:
+                  - block:
+                      id: "1b"
+                      title: "Load config in main"
+                      code: "config, _, _ := LoadConfig()"
+                      file: "main.go"
+                      line: 135
+
+  - id: 2
+    title: "Server Connection"
+    summary: "Spawn and initialize MCP server processes"
+    tree:
+      - text: "If servers configured, create MCP clients"
+        children:
+          - block:
+              id: "2a"
+              title: "Create MCPClients"
+              code: "mcpClients := tools.NewMCPClients(ctx, config.MCPServers)"
+              file: "main.go"
+              line: 138
+            children:
+              - text: "For each server config, connect via stdio"
+                children:
+                  - block:
+                      id: "2b"
+                      title: "Spawn stdio process"
+                      code: "c, err := client.NewStdioMCPClient(cmd, nil, args...)"
+                      file: "tools/mcp.go"
+                      line: 50
+                    children:
+                      - text: "Handshake with MCP protocol"
+                        children:
+                          - block:
+                              id: "2c"
+                              title: "Initialize handshake"
+                              code: "_, err = c.Initialize(ctx, mcp.InitializeRequest{"
+                              file: "tools/mcp.go"
+                              line: 55
+                            children:
+                              - text: "Fetch available tools from server"
+                                children:
+                                  - block:
+                                      id: "2d"
+                                      title: "List tools"
+                                      code: "result, err := c.ListTools(ctx, mcp.ListToolsRequest{})"
+                                      file: "tools/mcp.go"
+                                      line: 69
+                                    children:
+                                      - text: "Wire clients into global registry"
+                                        children:
+                                          - block:
+                                              id: "2e"
+                                              title: "Set global MCP clients"
+                                              code: "tools.SetMCPClients(mcpClients)"
+                                              file: "main.go"
+                                              line: 140
+
+  - id: 3
+    title: "Tool Discovery"
+    summary: "Merge MCP tools with local tools for Claude API"
+    tree:
+      - text: "All() returns local + MCP tools combined"
+        children:
+          - block:
+              id: "3a"
+              title: "All tools merged"
+              code: "return append(allTools, globalMCPClients.Tools()...)"
+              file: "tools/tools.go"
+              line: 75
+            children:
+              - text: "MCPClients.Tools() converts mcp.Tool to claude.Tool, prefixes with server name"
+                children:
+                  - block:
+                      id: "3b"
+                      title: "Prefix tool names"
+                      code: "Name: srv.name + \"__\" + t.Name,"
+                      file: "tools/mcp.go"
+                      line: 85
+                    children:
+                      - text: "Agent loop requests with full tool set"
+                        children:
+                          - block:
+                              id: "3c"
+                              title: "Pass tools to API"
+                              code: "toolSet := tools.All()"
+                              file: "main.go"
+                              line: 213
+
+  - id: 4
+    title: "Execution"
+    summary: "Execute tools - local first, MCP fallback"
+    tree:
+      - text: "When Claude returns tool_use, Execute dispatches"
+        children:
+          - block:
+              id: "4a"
+              title: "Execute dispatch"
+              code: "result := tools.Execute(block.Name, block.Input)"
+              file: "main.go"
+              line: 262
+            children:
+              - text: "Try local registry first"
+                children:
+                  - block:
+                      id: "4b"
+                      title: "Local registry check"
+                      code: "if fn, ok := registry[name]; ok {"
+                      file: "tools/tools.go"
+                      line: 95
+                    children:
+                      - text: "Fallback to MCP if not found locally"
+                        children:
+                          - block:
+                              id: "4c"
+                              title: "MCP fallback"
+                              code: "if result, found := globalMCPClients.Execute(context.Background(), name, input); found {"
+                              file: "tools/tools.go"
+                              line: 100
+                          - text: "Strip prefix, find server with matching tool"
+                            children:
+                              - block:
+                                  id: "4c1"
+                                  title: "Parse prefixed name"
+                                  code: "rawName := strings.TrimPrefix(name, srv.name+\"__\")"
+                                  file: "tools/mcp.go"
+                                  line: 99
+                          - text: "Find server with matching tool and call it"
+                            children:
+                              - block:
+                                  id: "4d"
+                                  title: "Call MCP tool"
+                                  code: "result, err := srv.client.CallTool(ctx, mcp.CallToolRequest{"
+                                  file: "tools/mcp.go"
+                                  line: 111

@@ -1,0 +1,178 @@
+title: "Subagent/Task Execution Flow"
+created: "2026-01-11T00:00:00Z"
+summary: "Task tool spawns isolated subagent with limited tools, done signal terminates"
+description: |
+  ## Overview
+  The task tool [1a] invokes RunSubagent [2a] with isolated message history.
+  Subagents use a restricted tool set [2b] and signal completion via done [3a].
+
+  ## Key Flow
+  1. main.go wires up subagent config at [1b]
+  2. Task tool validates input, calls RunSubagent [1c-2a]
+  3. Subagent loops with limited tools until done or max turns [2c-2e]
+  4. Done tool returns prefixed summary, detected by RunSubagent [3a-3c]
+
+sections:
+  - id: 1
+    title: "Configuration & Task Invocation"
+    summary: "main.go wires config, task tool spawns subagent"
+    tree:
+      - text: "Package vars store subagent config"
+        children:
+          - block:
+              id: "1a"
+              title: "Subagent config vars"
+              code: "var (subagentClient *claude.Client; subagentModel string; subagentSystemPrompt string)"
+              file: "tools/task.go"
+              line: 11
+            children:
+              - text: "main.go wires up config after BuildSystemPrompt"
+                children:
+                  - block:
+                      id: "1b"
+                      title: "Wire subagent config"
+                      code: "tools.SetSubagentConfig(client, model, systemPrompt)"
+                      file: "main.go"
+                      line: 153
+              - text: "Task tool registered in init with prompt and description params"
+                children:
+                  - block:
+                      id: "1c"
+                      title: "Task tool registration"
+                      code: "register(claude.Tool{Name: \"task\", Description: \"Spawn a subagent to research a question...\"}"
+                      file: "tools/task.go"
+                      line: 32
+                    children:
+                      - text: "Handler validates args and calls RunSubagent"
+                        children:
+                          - block:
+                              id: "1d"
+                              title: "Task handler"
+                              code: "summary, err := RunSubagent(subagentClient, subagentModel, subagentSystemPrompt, args.Prompt)"
+                              file: "tools/task.go"
+                              line: 76
+
+  - id: 2
+    title: "Subagent Execution Loop"
+    summary: "Isolated message history, limited tools, turn-based execution"
+    tree:
+      - text: "RunSubagent creates context with 15min timeout"
+        children:
+          - block:
+              id: "2a"
+              title: "Timeout context"
+              code: "ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)"
+              file: "tools/subagent.go"
+              line: 32
+            children:
+              - text: "SubagentTools built in init: read, ls, grep, write, replace + done"
+                children:
+                  - block:
+                      id: "2b"
+                      title: "Limited tool set"
+                      code: "subagentToolNames := []string{\"read_file\", \"ls\", \"grep\", \"write_file\", \"replace_text\"}"
+                      file: "tools/subagent.go"
+                      line: 19
+              - text: "Fresh message history with user prompt"
+                children:
+                  - block:
+                      id: "2c"
+                      title: "Isolated messages"
+                      code: "messages := []claude.MessageParam{{Role: \"user\", Content: prompt}}"
+                      file: "tools/subagent.go"
+                      line: 35
+                    children:
+                      - text: "Loop with max 100 turns, checks timeout between turns"
+                        children:
+                          - block:
+                              id: "2d"
+                              title: "Turn loop"
+                              code: "for turn := 0; turn < maxTurns; turn++ {"
+                              file: "tools/subagent.go"
+                              line: 38
+                            children:
+                              - text: "Non-streaming API call with subagent tools only"
+                                children:
+                                  - block:
+                                      id: "2e"
+                                      title: "API call"
+                                      code: "msg, err := client.Messages.Create(claude.MessageCreateParams{...Tools: SubagentTools})"
+                                      file: "tools/subagent.go"
+                                      line: 45
+
+  - id: 3
+    title: "Done Tool & Termination"
+    summary: "Done tool signals completion, RunSubagent detects prefix"
+    tree:
+      - text: "Done tool only added to SubagentTools, not main registry"
+        children:
+          - block:
+              id: "3a"
+              title: "DoneTool definition"
+              code: "var DoneTool = claude.Tool{Name: \"done\", Description: \"Signal task completion...\"}"
+              file: "tools/done.go"
+              line: 14
+            children:
+              - text: "Executor registered in registry for Execute dispatch"
+                children:
+                  - block:
+                      id: "3b"
+                      title: "Register executor only"
+                      code: "registry[\"done\"] = executeDone"
+                      file: "tools/done.go"
+                      line: 28
+                    children:
+                      - text: "Returns prefixed summary (max 500 chars)"
+                        children:
+                          - block:
+                              id: "3c"
+                              title: "Return prefixed signal"
+                              code: "return newResult(\"done\", fmt.Sprintf(\"%s%s\", DoneSignalPrefix, args.Summary))"
+                              file: "tools/done.go"
+                              line: 43
+      - text: "RunSubagent checks for done signal prefix in results"
+        children:
+          - block:
+              id: "3d"
+              title: "Detect done signal"
+              code: "if strings.HasPrefix(result.String(), DoneSignalPrefix) {"
+              file: "tools/subagent.go"
+              line: 80
+            children:
+              - text: "Strips prefix and returns summary to parent"
+                children:
+                  - block:
+                      id: "3e"
+                      title: "Extract and return summary"
+                      code: "summary := strings.TrimPrefix(result.String(), DoneSignalPrefix); return summary, nil"
+                      file: "tools/subagent.go"
+                      line: 81
+
+  - id: 4
+    title: "Stop Conditions"
+    summary: "Text response, done signal, timeout, or max turns"
+    tree:
+      - text: "If stop_reason is not tool_use, extract text response"
+        children:
+          - block:
+              id: "4a"
+              title: "Text response exit"
+              code: "if msg.StopReason != \"tool_use\" { for _, block := range msg.Content { if block.Type == \"text\" { return block.Text, nil }}}"
+              file: "tools/subagent.go"
+              line: 60
+      - text: "Timeout checked at start of each turn"
+        children:
+          - block:
+              id: "4b"
+              title: "Timeout check"
+              code: "select { case <-ctx.Done(): return \"\", errors.New(\"subagent timeout\") default: }"
+              file: "tools/subagent.go"
+              line: 39
+      - text: "Max turns exceeded returns error"
+        children:
+          - block:
+              id: "4c"
+              title: "Max turns exceeded"
+              code: "return \"\", errors.New(\"max turns exceeded\")"
+              file: "tools/subagent.go"
+              line: 96

@@ -1,0 +1,5 @@
+# Binary
+simpleagent
+
+# User-specific config
+.simpleagent/config.json

@@ -1,0 +1,133 @@
+title: "Rule Loading Flow"
+created: "2025-01-11T00:00:00Z"
+summary: "How rules are loaded from .rules and .claude/rules directories into the system prompt"
+description: |
+  ## Overview
+  Rules are markdown files with optional YAML frontmatter loaded at startup via [1a].
+  The flow searches directories [1b], parses frontmatter [2a], and separates always-loaded
+  rules [2b] from conditional pattern-matched rules [3a].
+
+  ## Key Components
+  - Entry point at [1a] in BuildSystemPrompt
+  - Directory search at [1b] with parent traversal
+  - Frontmatter parsing at [2a]
+  - Always-rules formatting at [2b]
+  - Conditional matching at [3a]
+
+sections:
+  - id: 1
+    title: "Entry & Directory Discovery"
+    summary: "BuildSystemPrompt triggers rule loading, searches for rule directories"
+    tree:
+      - text: "main.go calls BuildSystemPrompt at startup"
+        children:
+          - block:
+              id: "1a"
+              title: "BuildSystemPrompt calls LoadRules"
+              code: "rulesDir, rules := LoadRules()"
+              file: "config.go"
+              line: 157
+            children:
+              - text: "LoadRules iterates over both .rules and .claude/rules"
+                children:
+                  - block:
+                      id: "1b"
+                      title: "Search both rule directories"
+                      code: "for _, dirName := range []string{rulesDirName, \".claude/rules\"} {"
+                      file: "config.go"
+                      line: 223
+                    children:
+                      - block:
+                          id: "1c"
+                          title: "findDir traverses parent dirs"
+                          code: "rulesDir := findDir(dirName)"
+                          file: "config.go"
+                          line: 224
+                        children:
+                          - block:
+                              id: "1d"
+                              title: "Check if directory exists"
+                              code: "if info, err := os.Stat(path); err == nil && info.IsDir() {"
+                              file: "config.go"
+                              line: 282
+
+  - id: 2
+    title: "File Parsing"
+    summary: "Read rule files, extract frontmatter, build ruleFile structs"
+    tree:
+      - text: "For each .md/.txt file in the rules directory"
+        children:
+          - block:
+              id: "2a"
+              title: "Parse YAML frontmatter"
+              code: "fm, body := ParseFrontmatter(string(data))"
+              file: "config.go"
+              line: 252
+            children:
+              - block:
+                  id: "2b"
+                  title: "Unmarshal frontmatter to Rule struct"
+                  code: "yaml.Unmarshal([]byte(fm), &rule)"
+                  file: "config.go"
+                  line: 259
+                children:
+                  - block:
+                      id: "2c"
+                      title: "Append to rules slice"
+                      code: "rules = append(rules, ruleFile{"
+                      file: "config.go"
+                      line: 262
+
+  - id: 3
+    title: "Rule Categorization"
+    summary: "Separate always-loaded rules from conditional pattern-matched rules"
+    tree:
+      - text: "Rules without a pattern are always loaded into system prompt"
+        children:
+          - block:
+              id: "3a"
+              title: "Format always-loaded rules"
+              code: "alwaysRules := formatAlwaysRules(rules)"
+              file: "config.go"
+              line: 158
+            children:
+              - block:
+                  id: "3b"
+                  title: "Check if rule has no pattern"
+                  code: "if r.Pattern == \"\" {"
+                  file: "config.go"
+                  line: 300
+                children:
+                  - block:
+                      id: "3c"
+                      title: "Wrap in rule tags"
+                      code: "always = append(always, \"<rule source=\\\"\"+r.SourceFile+\"\\\">\\n\"+r.Content+\"\\n</rule>\")"
+                      file: "config.go"
+                      line: 301
+
+  - id: 4
+    title: "Conditional Rule Matching"
+    summary: "Pattern-matched rules injected when files are accessed"
+    tree:
+      - text: "Rules with patterns are matched against file paths at runtime"
+        children:
+          - block:
+              id: "4a"
+              title: "Wire up RuleMatcher in main"
+              code: "tools.RuleMatcher = GetMatchingRules"
+              file: "main.go"
+              line: 156
+            children:
+              - block:
+                  id: "4b"
+                  title: "Match pattern against file path"
+                  code: "if match, _ := doublestar.Match(r.Pattern, relPath); match {"
+                  file: "config.go"
+                  line: 328
+                children:
+                  - block:
+                      id: "4c"
+                      title: "Append matched rule content"
+                      code: "matched = append(matched, \"<rule source=\\\"\"+r.SourceFile+\"\\\">\\n\"+r.Content+\"\\n</rule>\")"
+                      file: "config.go"
+                      line: 329

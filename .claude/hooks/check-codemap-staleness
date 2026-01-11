@@ -1,0 +1,67 @@
+#!/bin/bash
+# Claude Code hook - warns about stale codemaps
+# Handles: PostToolUse (per-file) and Stop (git diff summary)
+
+is_skip_file() {
+  local f="$1"
+  [[ "$f" == CODEMAP_* ]] && return 0
+  [[ "$f" == *.md ]] && return 0
+  [[ "$f" == *.json ]] && return 0
+  [[ "$f" == *.yaml ]] && return 0
+  [[ "$f" == *.yml ]] && return 0
+  return 1
+}
+
+find_codemaps() {
+  local basename="$1"
+  grep -l "file:.*$basename" CODEMAP_*.yaml 2>/dev/null
+}
+
+# Detect hook type
+file=$(jq -r '.tool_input.file_path // empty' 2>/dev/null)
+
+if [ -n "$file" ]; then
+  # PostToolUse: single file check
+  basename="${file##*/}"
+  is_skip_file "$basename" && exit 0
+
+  matches=$(find_codemaps "$basename" | sort -u)
+  [ -z "$matches" ] && exit 0
+
+  list=$(echo "$matches" | tr '\n' ', ' | sed 's/,$//')
+  cat <<EOF
+{
+  "continue": true,
+  "hookSpecificOutput": {
+    "hookEventName": "PostToolUse",
+    "additionalContext": "CODEMAP WARNING: $basename is referenced in: $list. Consider updating."
+  }
+}
+EOF
+else
+  # Stop: check all modified files via git
+  modified=$(git diff --name-only HEAD 2>/dev/null)
+  [ -z "$modified" ] && exit 0
+
+  stale_maps=""
+  while IFS= read -r f; do
+    basename="${f##*/}"
+    is_skip_file "$basename" && continue
+    matches=$(find_codemaps "$basename")
+    [ -n "$matches" ] && stale_maps="$stale_maps$matches"$'\n'
+  done <<< "$modified"
+
+  stale_maps=$(echo "$stale_maps" | sort -u | grep -v '^$')
+  [ -z "$stale_maps" ] && exit 0
+
+  list=$(echo "$stale_maps" | tr '\n' ', ' | sed 's/,$//')
+  cat <<EOF
+{
+  "continue": true,
+  "hookSpecificOutput": {
+    "hookEventName": "Stop",
+    "additionalContext": "STALE CODEMAPS: Consider updating: $list"
+  }
+}
+EOF
+fi
