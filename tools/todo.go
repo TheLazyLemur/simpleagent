@@ -246,19 +246,6 @@ func executeTodo(input json.RawMessage) Result {
 	return todoResult{output: fmt.Sprintf(`{"success":true,"count":%d}`, len(args.Todos))}
 }
 
-// HasPending returns true if any todos are pending or in_progress
-func HasPending() bool {
-	if configTodos == nil {
-		return false
-	}
-	for _, t := range *configTodos {
-		if t.Status == "pending" || t.Status == "in_progress" {
-			return true
-		}
-	}
-	return false
-}
-
 // RenderTodos prints todos to stdout
 func RenderTodos(t []Todo) {
 	fmt.Println()

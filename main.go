@@ -290,9 +290,17 @@ func main() {
 				break
 			}
 
+			hasPending := false
+			for _, t := range sessionTodos {
+				if t.Status == "pending" || t.Status == "in_progress" {
+					hasPending = true
+					break
+				}
+			}
 			state := &AgentState{
 				PlanMode:            planMode,
 				TurnsSinceTodoWrite: turnsSinceTodoWrite,
+				HasPendingTodos:     hasPending,
 			}
 			if reminders := GetReminders(state); reminders != "" {
 				last := &toolResults[len(toolResults)-1]

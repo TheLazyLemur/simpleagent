@@ -1,15 +1,12 @@
 package main
 
-import (
-	"strings"
-
-	"simpleagent/tools"
-)
+import "strings"
 
 // AgentState holds state needed for reminder checks
 type AgentState struct {
 	PlanMode            bool
 	TurnsSinceTodoWrite int
+	HasPendingTodos     bool
 }
 
 // GetReminders returns all applicable reminders for current state
@@ -25,7 +22,7 @@ func GetReminders(state *AgentState) string {
 }
 
 func todoReminder(state *AgentState) string {
-	if state.TurnsSinceTodoWrite >= 3 && tools.HasPending() {
+	if state.TurnsSinceTodoWrite >= 3 && state.HasPendingTodos {
 		return `<system-reminder>
 The TodoWrite tool hasn't been used recently. If working on multi-step tasks, consider updating the todo list to track progress.
 </system-reminder>`
