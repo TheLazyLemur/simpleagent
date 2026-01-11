@@ -12,7 +12,7 @@ description: |
   - Directory search at [1b] with parent traversal via findInAncestors [1d]
   - Frontmatter parsing at [2a]
   - Always-rules formatting at [2b]
-  - Conditional matching at [3a]
+  - Conditional matching wired via tools.Init [4a-4c], matcher at [4e]
 
 sections:
   - id: 1
@@ -113,21 +113,42 @@ sections:
         children:
           - block:
               id: "4a"
-              title: "Wire up RuleMatcher in main"
-              code: "tools.RuleMatcher = GetMatchingRules"
-              file: "main.go"
-              line: 156
+              title: "Config struct with RuleMatcher field"
+              code: "RuleMatcher func(string) (string, []string)"
+              file: "tools/tools.go"
+              line: 23
             children:
               - block:
                   id: "4b"
-                  title: "Match pattern against file path"
-                  code: "if match, _ := doublestar.Match(r.Pattern, relPath); match {"
-                  file: "config.go"
-                  line: 320
+                  title: "Init passes RuleMatcher via Config"
+                  code: "tools.Init(tools.Config{...RuleMatcher: GetMatchingRules,...})"
+                  file: "main.go"
+                  line: 170
                 children:
                   - block:
                       id: "4c"
-                      title: "Append matched rule content"
-                      code: "matched = append(matched, wrapXML(\"rule\", r.SourceFile, r.Content))"
-                      file: "config.go"
-                      line: 321
+                      title: "Init sets RuleMatcher from cfg"
+                      code: "RuleMatcher = cfg.RuleMatcher"
+                      file: "tools/tools.go"
+                      line: 43
+                    children:
+                      - block:
+                          id: "4d"
+                          title: "RuleMatcher var in fs.go"
+                          code: "var RuleMatcher func(filePath string) (string, []string)"
+                          file: "tools/fs.go"
+                          line: 15
+                        children:
+                          - block:
+                              id: "4e"
+                              title: "Match pattern against file path"
+                              code: "if match, _ := doublestar.Match(r.Pattern, relPath); match {"
+                              file: "config.go"
+                              line: 320
+                            children:
+                              - block:
+                                  id: "4f"
+                                  title: "Append matched rule content"
+                                  code: "matched = append(matched, wrapXML(\"rule\", r.SourceFile, r.Content))"
+                                  file: "config.go"
+                                  line: 321

@@ -7,74 +7,97 @@ description: |
   streams responses [2b], executes tools [3a], and persists sessions [4a].
 
   ## Key Flow
-  1. Initialization: client setup, session load/create, MCP servers [1a-1d]
-  2. Input handling: commands, bash shortcuts, user messages [2a-2c]
-  3. Agentic loop: API streaming, text rendering, tool execution [3a-3e]
-  4. Persistence: session save after each user turn [4a]
+  1. Initialization: globals, client setup, session load/create, tools.Init [1a-1h]
+  2. Input handling: commands, bash shortcuts, user messages [2a-2e]
+  3. Agentic loop: API streaming, text rendering, tool execution [3a-3o]
+  4. Tool registry: dispatch and execution [4a-4d]
+  5. Persistence: session save after each user turn [5a-5b]
 
 sections:
   - id: 1
     title: "Initialization"
-    summary: "Client setup, session management, config loading"
+    summary: "Globals, client setup, session management, tools.Init"
     tree:
-      - text: "Entry point parses flags for session management"
+      - text: "Package-level globals for session state"
         children:
           - block:
               id: "1a"
+              title: "Session todos global"
+              code: "sessionTodos []tools.Todo"
+              file: "main.go"
+              line: 76
+          - block:
+              id: "1b"
+              title: "Skill loader helper"
+              code: "func makeSkillLoader() func(string) (*tools.SkillInfo, error) {"
+              file: "main.go"
+              line: 58
+      - text: "Entry point parses flags for session management"
+        children:
+          - block:
+              id: "1c"
               title: "Flag parsing"
               code: "resumeFlag := flag.String(\"resume\", \"\", \"Resume a session by ID\")"
               file: "main.go"
-              line: 77
+              line: 93
             children:
               - text: "Creates Claude client with configured base URL"
                 children:
                   - block:
-                      id: "1b"
+                      id: "1d"
                       title: "Client creation"
                       code: "client := claude.NewClient(claude.WithBaseURL(baseURL))"
                       file: "main.go"
-                      line: 96
+                      line: 112
                     children:
                       - text: "Loads or creates session based on resume flag"
                         children:
                           - block:
-                              id: "1c"
+                              id: "1e"
                               title: "Session resume"
                               code: "sess, err := loadSession(*resumeFlag)"
                               file: "main.go"
-                              line: 106
+                              line: 122
                           - block:
-                              id: "1d"
+                              id: "1f"
                               title: "New session"
                               code: "sessionID = newSessionID()"
                               file: "main.go"
-                              line: 127
+                              line: 142
       - text: "Loads MCP servers from config"
         children:
           - block:
-              id: "1e"
+              id: "1g"
               title: "MCP client init"
-              code: "mcpClients := tools.NewMCPClients(ctx, config.MCPServers)"
+              code: "mcpClients = tools.NewMCPClients(ctx, config.MCPServers)"
               file: "main.go"
-              line: 138
+              line: 154
             children:
               - text: "Builds system prompt from config and memory files"
                 children:
                   - block:
-                      id: "1f"
+                      id: "1h"
                       title: "System prompt"
                       code: "systemPrompt, loadedFiles, err := BuildSystemPrompt()"
                       file: "main.go"
-                      line: 144
+                      line: 159
                     children:
-                      - text: "Wires up subagent config for task tool"
+                      - text: "Single tools.Init call configures all tool dependencies"
                         children:
                           - block:
-                              id: "1g"
-                              title: "Subagent config"
-                              code: "tools.SetSubagentConfig(client, model, systemPrompt)"
+                              id: "1i"
+                              title: "tools.Init"
+                              code: |
+                                tools.Init(tools.Config{
+                                    MCPClients:      mcpClients,
+                                    PermissionsMode: permissionsMode,
+                                    RuleMatcher:     GetMatchingRules,
+                                    SkillLoader:     makeSkillLoader(),
+                                    Todos:           &sessionTodos,
+                                    Subagent: &tools.SubagentConfig{...},
+                                })
                               file: "main.go"
-                              line: 153
+                              line: 167
 
   - id: 2
     title: "Input Loop"
@@ -87,7 +110,7 @@ sections:
               title: "Main loop start"
               code: "for {"
               file: "main.go"
-              line: 172
+              line: 180
             children:
               - text: "Reads multi-line input with continuation support"
                 children:
@@ -96,7 +119,7 @@ sections:
                       title: "Read input"
                       code: "input := readMultiLine(reader)"
                       file: "main.go"
-                      line: 174
+                      line: 182
                     children:
                       - text: "Handles /plan command to toggle plan mode"
                         children:
@@ -105,7 +128,7 @@ sections:
                               title: "Plan toggle"
                               code: "if input == \"/plan\" {"
                               file: "main.go"
-                              line: 180
+                              line: 188
                       - text: "Handles !! prefix for bash with context"
                         children:
                           - block:
@@ -113,7 +136,7 @@ sections:
                               title: "Bash context"
                               code: "if after, ok := strings.CutPrefix(input, \"!!\"); ok {"
                               file: "main.go"
-                              line: 191
+                              line: 199
                       - text: "Appends user message to conversation"
                         children:
                           - block:
@@ -121,7 +144,7 @@ sections:
                               title: "Add user msg"
                               code: "messages = append(messages, claude.MessageParam{Role: \"user\", Content: input})"
                               file: "main.go"
-                              line: 210
+                              line: 218
 
   - id: 3
     title: "Agentic Loop"
@@ -134,7 +157,7 @@ sections:
               title: "Agentic loop"
               code: "for {"
               file: "main.go"
-              line: 212
+              line: 220
             children:
               - text: "Selects tool set based on plan mode"
                 children:
@@ -143,7 +166,7 @@ sections:
                       title: "Tool selection"
                       code: "toolSet := tools.All()"
                       file: "main.go"
-                      line: 213
+                      line: 221
                     children:
                       - text: "Streams API request with thinking enabled"
                         children:
@@ -152,7 +175,7 @@ sections:
                               title: "API stream"
                               code: "stream := client.Messages.Stream(claude.MessageCreateParams{"
                               file: "main.go"
-                              line: 218
+                              line: 226
                             children:
                               - text: "Registers streaming callbacks for text and thinking"
                                 children:
@@ -161,13 +184,13 @@ sections:
                                       title: "Text callback"
                                       code: "stream.OnText(func(s string) {"
                                       file: "main.go"
-                                      line: 228
+                                      line: 236
                                   - block:
                                       id: "3e"
                                       title: "Thinking callback"
                                       code: "stream.OnThinking(func(s string) {"
                                       file: "main.go"
-                                      line: 231
+                                      line: 239
                               - text: "Waits for final message"
                                 children:
                                   - block:
@@ -175,7 +198,7 @@ sections:
                                       title: "Final message"
                                       code: "msg, err := stream.FinalMessage()"
                                       file: "main.go"
-                                      line: 235
+                                      line: 243
                                     children:
                                       - text: "Renders text with glamour markdown"
                                         children:
@@ -184,7 +207,7 @@ sections:
                                               title: "Render text"
                                               code: "rendered, err := mdRenderer.Render(text)"
                                               file: "main.go"
-                                              line: 246
+                                              line: 254
                                       - text: "Appends assistant message to history"
                                         children:
                                           - block:
@@ -192,7 +215,7 @@ sections:
                                               title: "Add assistant msg"
                                               code: "messages = append(messages, claude.MessageParam{Role: \"assistant\", Content: msg.Content})"
                                               file: "main.go"
-                                              line: 257
+                                              line: 265
       - text: "Iterates over content blocks for tool calls"
         children:
           - block:
@@ -200,7 +223,7 @@ sections:
               title: "Tool iteration"
               code: "for _, block := range msg.Content {"
               file: "main.go"
-              line: 260
+              line: 268
             children:
               - text: "Executes each tool_use block"
                 children:
@@ -209,7 +232,7 @@ sections:
                       title: "Tool execute"
                       code: "result := tools.Execute(block.Name, block.Input)"
                       file: "main.go"
-                      line: 262
+                      line: 270
                     children:
                       - text: "Renders tool output"
                         children:
@@ -218,7 +241,7 @@ sections:
                               title: "Render result"
                               code: "result.Render()"
                               file: "main.go"
-                              line: 263
+                              line: 271
                       - text: "Builds tool result for API response"
                         children:
                           - block:
@@ -226,7 +249,7 @@ sections:
                               title: "Build result"
                               code: "toolResults = append(toolResults, claude.ToolResultBlock{"
                               file: "main.go"
-                              line: 272
+                              line: 280
       - text: "Breaks loop if no tool calls"
         children:
           - block:
@@ -234,25 +257,46 @@ sections:
               title: "No tools break"
               code: "if len(toolResults) == 0 {"
               file: "main.go"
-              line: 280
+              line: 288
             children:
-              - text: "Otherwise injects reminders and continues"
+              - text: "Computes HasPendingTodos locally from sessionTodos"
                 children:
                   - block:
                       id: "3n"
-                      title: "Get reminders"
-                      code: "if reminders := GetReminders(state); reminders != \"\" {"
+                      title: "Pending check"
+                      code: |
+                        hasPending := false
+                        for _, t := range sessionTodos {
+                            if t.Status == "pending" || t.Status == "in_progress" {
+                                hasPending = true
+                                break
+                            }
+                        }
                       file: "main.go"
-                      line: 289
+                      line: 293
                     children:
-                      - text: "Appends tool results as user message"
+                      - text: "Builds AgentState with HasPendingTodos field"
                         children:
                           - block:
                               id: "3o"
+                              title: "AgentState"
+                              code: "state := &AgentState{..., HasPendingTodos: hasPending}"
+                              file: "main.go"
+                              line: 300
+                      - text: "Injects reminders and appends tool results"
+                        children:
+                          - block:
+                              id: "3p"
+                              title: "Get reminders"
+                              code: "if reminders := GetReminders(state); reminders != \"\" {"
+                              file: "main.go"
+                              line: 305
+                          - block:
+                              id: "3q"
                               title: "Add tool results"
                               code: "messages = append(messages, claude.MessageParam{Role: \"user\", Content: toolResults})"
                               file: "main.go"
-                              line: 294
+                              line: 310
 
   - id: 4
     title: "Tool Registry"
@@ -296,14 +340,14 @@ sections:
     title: "Session Persistence"
     summary: "Saves state after each user turn"
     tree:
-      - text: "After agentic loop completes, saves session"
+      - text: "After agentic loop completes, saves session using sessionTodos directly"
         children:
           - block:
               id: "5a"
               title: "Save session"
-              code: "saveSession(sessionID, messages, tools.GetTodos(), planMode, tools.GetPermissionsMode())"
+              code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
               file: "main.go"
-              line: 298
+              line: 314
             children:
               - text: "Increments turn counter for reminder system"
                 children:
@@ -312,4 +356,4 @@ sections:
                       title: "Increment counter"
                       code: "turnsSinceTodoWrite++"
                       file: "main.go"
-                      line: 300
+                      line: 316

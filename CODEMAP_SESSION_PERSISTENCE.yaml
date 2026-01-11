@@ -40,7 +40,7 @@ sections:
                       title: "New session branch"
                       code: "sessionID = newSessionID()"
                       file: "main.go"
-                      line: 127
+                      line: 142
 
   - id: 2
     title: "Session Save"
@@ -90,14 +90,14 @@ sections:
                                 os.WriteFile(sessionPath(id), data, 0644)
                               file: "session.go"
                               line: 63
-      - text: "Called after agentic loop completes in main"
+      - text: "Called after agentic loop - uses sessionTodos directly (main.go owns state)"
         children:
           - block:
               id: "2d"
               title: "Save call site"
-              code: "saveSession(sessionID, messages, tools.GetTodos(), planMode, tools.GetPermissionsMode())"
+              code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
               file: "main.go"
-              line: 298
+              line: 314
 
   - id: 3
     title: "Session Load"
@@ -127,7 +127,7 @@ sections:
               title: "Resume flag check"
               code: "if *resumeFlag != \"\""
               file: "main.go"
-              line: 105
+              line: 121
             children:
               - text: "Loads session and restores state"
                 children:
@@ -136,24 +136,23 @@ sections:
                       title: "Load session"
                       code: "sess, err := loadSession(*resumeFlag)"
                       file: "main.go"
-                      line: 106
+                      line: 122
                     children:
-                      - text: "Restores messages, todos, modes"
+                      - text: "Restores messages, todos, modes - assigns directly to sessionTodos (no tools.SetTodos)"
                         children:
                           - block:
                               id: "3d"
                               title: "Restore state"
                               code: |
                                 messages = sess.Messages
-                                tools.SetTodos(sess.Todos)
+                                sessionTodos = sess.Todos
                                 planMode = sess.PlanMode
                                 sessionID = sess.Meta.ID
                                 if sess.PermissionsMode != "" {
                                     permissionsMode = sess.PermissionsMode
                                 }
-                                tools.SetPermissionsMode(permissionsMode)
                               file: "main.go"
-                              line: 111
+                              line: 127
 
   - id: 4
     title: "Session List"
@@ -218,7 +217,7 @@ sections:
                     listSessions()
                     return
               file: "main.go"
-              line: 88
+              line: 104
 
   - id: 5
     title: "Session Delete"
@@ -251,7 +250,7 @@ sections:
                     deleteSession(*deleteFlag)
                     return
               file: "main.go"
-              line: 91
+              line: 107
 
   - id: 6
     title: "Session Path Helper"
@@ -276,3 +275,46 @@ sections:
               code: "var sessionDir = filepath.Join(os.Getenv(\"HOME\"), \".config\", \"agent\", \"sessions\")"
               file: "session.go"
               line: 18
+
+  - id: 7
+    title: "Todo State Ownership"
+    summary: "main.go owns sessionTodos, passes pointer to tools.Init"
+    tree:
+      - text: "sessionTodos declared as package-level var in main.go"
+        children:
+          - block:
+              id: "7a"
+              title: "sessionTodos var"
+              code: "sessionTodos []tools.Todo"
+              file: "main.go"
+              line: 76
+            children:
+              - text: "Pointer passed to tools.Init for tool access"
+                children:
+                  - block:
+                      id: "7b"
+                      title: "tools.Init with Todos pointer"
+                      code: |
+                        tools.Init(tools.Config{
+                            ...
+                            Todos: &sessionTodos,
+                            ...
+                        })
+                      file: "main.go"
+                      line: 167
+      - text: "Direct assignment on session restore (no tools.SetTodos)"
+        children:
+          - block:
+              id: "7c"
+              title: "Direct restore"
+              code: "sessionTodos = sess.Todos"
+              file: "main.go"
+              line: 128
+      - text: "Passed directly to saveSession (no tools.GetTodos)"
+        children:
+          - block:
+              id: "7d"
+              title: "Direct save"
+              code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
+              file: "main.go"
+              line: 314

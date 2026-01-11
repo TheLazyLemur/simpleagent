@@ -3,54 +3,71 @@ created: "2026-01-11T00:00:00Z"
 summary: "Task tool spawns isolated subagent with limited tools, done signal terminates"
 description: |
   ## Overview
-  The task tool [1a] invokes RunSubagent [2a] with isolated message history.
+  The task tool [1e] invokes RunSubagent [2a] with isolated message history.
   Subagents use a restricted tool set [2b] and signal completion via done [3a].
 
   ## Key Flow
-  1. main.go wires up subagent config at [1b]
-  2. Task tool validates input, calls RunSubagent [1c-2a]
+  1. main.go passes SubagentConfig via tools.Init() [1c-1d]
+  2. Task tool validates input, calls RunSubagent [1f-2a]
   3. Subagent loops with limited tools until done or max turns [2c-2e]
   4. Done tool returns prefixed summary, detected by RunSubagent [3a-3c]
 
 sections:
   - id: 1
     title: "Configuration & Task Invocation"
-    summary: "main.go wires config, task tool spawns subagent"
+    summary: "main.go passes config via Init(), task tool spawns subagent"
     tree:
-      - text: "Package vars store subagent config"
+      - text: "Config and SubagentConfig structs define initialization params"
         children:
           - block:
               id: "1a"
-              title: "Subagent config vars"
-              code: "var (subagentClient *claude.Client; subagentModel string; subagentSystemPrompt string)"
-              file: "tools/task.go"
-              line: 11
+              title: "SubagentConfig struct"
+              code: "type SubagentConfig struct { Client *claude.Client; Model string; SystemPrompt string }"
+              file: "tools/tools.go"
+              line: 29
             children:
-              - text: "main.go wires up config after BuildSystemPrompt"
+              - text: "Package vars store subagent config (set via Init)"
                 children:
                   - block:
                       id: "1b"
-                      title: "Wire subagent config"
-                      code: "tools.SetSubagentConfig(client, model, systemPrompt)"
-                      file: "main.go"
-                      line: 153
-              - text: "Task tool registered in init with prompt and description params"
+                      title: "Subagent config vars"
+                      code: "var (subagentClient *claude.Client; subagentModel string; subagentSystemPrompt string)"
+                      file: "tools/task.go"
+                      line: 11
+              - text: "Init() applies SubagentConfig to package vars"
                 children:
                   - block:
                       id: "1c"
-                      title: "Task tool registration"
-                      code: "register(claude.Tool{Name: \"Task\", Description: \"Spawn a subagent to research a question...\"}"
-                      file: "tools/task.go"
-                      line: 32
+                      title: "Init sets subagent vars"
+                      code: "if cfg.Subagent != nil { subagentClient = cfg.Subagent.Client; subagentModel = cfg.Subagent.Model; subagentSystemPrompt = cfg.Subagent.SystemPrompt }"
+                      file: "tools/tools.go"
+                      line: 46
                     children:
-                      - text: "Handler validates args and calls RunSubagent"
+                      - text: "main.go calls Init with Subagent config"
                         children:
                           - block:
                               id: "1d"
-                              title: "Task handler"
-                              code: "summary, err := RunSubagent(subagentClient, subagentModel, subagentSystemPrompt, args.Prompt)"
-                              file: "tools/task.go"
-                              line: 76
+                              title: "main.go Init call"
+                              code: "tools.Init(tools.Config{..., Subagent: &tools.SubagentConfig{Client: client, Model: model, SystemPrompt: systemPrompt}})"
+                              file: "main.go"
+                              line: 167
+      - text: "Task tool registered in init with prompt and description params"
+        children:
+          - block:
+              id: "1e"
+              title: "Task tool registration"
+              code: "register(claude.Tool{Name: \"Task\", Description: \"Spawn a subagent to research a question...\"}"
+              file: "tools/task.go"
+              line: 32
+            children:
+              - text: "Handler validates args and calls RunSubagent"
+                children:
+                  - block:
+                      id: "1f"
+                      title: "Task handler"
+                      code: "summary, err := RunSubagent(subagentClient, subagentModel, subagentSystemPrompt, args.Prompt)"
+                      file: "tools/task.go"
+                      line: 76
 
   - id: 2
     title: "Subagent Execution Loop"
