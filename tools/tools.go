@@ -15,6 +15,37 @@ func SetMCPClients(c *MCPClients) {
 	globalMCPClients = c
 }
 
+// Config holds all tool package configuration
+type Config struct {
+	MCPClients      *MCPClients
+	PermissionsMode string
+	RuleMatcher     func(string) (string, []string)
+	SkillLoader     func(string) (*SkillInfo, error)
+	Subagent        *SubagentConfig
+}
+
+// SubagentConfig holds subagent/task tool configuration
+type SubagentConfig struct {
+	Client       *claude.Client
+	Model        string
+	SystemPrompt string
+}
+
+// Init configures the tools package
+func Init(cfg Config) {
+	globalMCPClients = cfg.MCPClients
+	if cfg.PermissionsMode != "" {
+		permissionsMode = cfg.PermissionsMode
+	}
+	RuleMatcher = cfg.RuleMatcher
+	SkillLoader = cfg.SkillLoader
+	if cfg.Subagent != nil {
+		subagentClient = cfg.Subagent.Client
+		subagentModel = cfg.Subagent.Model
+		subagentSystemPrompt = cfg.Subagent.SystemPrompt
+	}
+}
+
 // Result is returned by Execute, with tool-specific rendering
 type Result interface {
 	String() string
