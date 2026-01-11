@@ -54,7 +54,7 @@ sections:
                       title: "Spawn stdio process"
                       code: "c, err := client.NewStdioMCPClient(cmd, nil, args...)"
                       file: "tools/mcp.go"
-                      line: 50
+                      line: 51
                     children:
                       - text: "Handshake with MCP protocol"
                         children:
@@ -63,7 +63,7 @@ sections:
                               title: "Initialize handshake"
                               code: "_, err = c.Initialize(ctx, mcp.InitializeRequest{"
                               file: "tools/mcp.go"
-                              line: 55
+                              line: 56
                             children:
                               - text: "Fetch available tools from server"
                                 children:
@@ -72,7 +72,7 @@ sections:
                                       title: "List tools"
                                       code: "result, err := c.ListTools(ctx, mcp.ListToolsRequest{})"
                                       file: "tools/mcp.go"
-                                      line: 69
+                                      line: 70
                                     children:
                                       - text: "Wire clients into global registry"
                                         children:
@@ -159,4 +159,4 @@ sections:
                                   title: "Call MCP tool"
                                   code: "result, err := srv.client.CallTool(ctx, mcp.CallToolRequest{"
                                   file: "tools/mcp.go"
-                                  line: 111
+                                  line: 114

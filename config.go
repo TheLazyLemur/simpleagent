@@ -57,27 +57,34 @@ func DefaultMemoryFiles() []string {
 	return []string{"CLAUDE.md"}
 }
 
-// FindConfig searches for config file in current dir and parent dirs
-func FindConfig() (string, error) {
+// findInAncestors walks up from cwd looking for target, returns full path or ""
+func findInAncestors(target string, mustBeDir bool) string {
 	dir, err := os.Getwd()
 	if err != nil {
-		return "", err
+		return ""
 	}
-
 	for {
-		configPath := filepath.Join(dir, configDirName, configFileName)
-		if _, err := os.Stat(configPath); err == nil {
-			return configPath, nil
+		path := filepath.Join(dir, target)
+		info, err := os.Stat(path)
+		if err == nil && (!mustBeDir || info.IsDir()) {
+			return path
 		}
-
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			break
 		}
 		dir = parent
 	}
+	return ""
+}
 
-	return "", os.ErrNotExist
+// FindConfig searches for config file in current dir and parent dirs
+func FindConfig() (string, error) {
+	path := findInAncestors(filepath.Join(configDirName, configFileName), false)
+	if path == "" {
+		return "", os.ErrNotExist
+	}
+	return path, nil
 }
 
 // LoadConfig loads the configuration from the config file
@@ -154,7 +161,7 @@ func BuildSystemPrompt() (string, []string, error) {
 	memoryContent, loadedFiles := GetMemoryFilesContent(config, configDir)
 
 	// Load rules from .rules directory
-	rulesDir, rules := LoadRules()
+	_, rules := LoadRules()
 	alwaysRules := formatAlwaysRules(rules)
 
 	var loaded []string
@@ -183,8 +190,7 @@ func BuildSystemPrompt() (string, []string, error) {
 		prompt += "\n\n" + skillsSection
 	}
 
-	// Store rules dir globally for conditional matching
-	globalRulesDir = rulesDir
+	// Store rules globally for conditional matching
 	globalRules = rules
 
 	return prompt, loaded, nil
@@ -272,25 +278,7 @@ func LoadRules() (string, []ruleFile) {
 
 // findDir searches for a directory in current dir and parent dirs
 func findDir(dirName string) string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-
-	for {
-		path := filepath.Join(dir, dirName)
-		if info, err := os.Stat(path); err == nil && info.IsDir() {
-			return path
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-
-	return ""
+	return findInAncestors(dirName, true)
 }
 
 // formatAlwaysRules formats rules without patterns into a single string
@@ -334,5 +322,4 @@ func GetMatchingRules(filePath string) (string, []string) {
 }
 
 // Global state for rules (set during BuildSystemPrompt)
-var globalRulesDir string
 var globalRules []ruleFile

@@ -9,7 +9,7 @@ description: |
 
   ## Key Components
   - Entry point at [1a] in BuildSystemPrompt
-  - Directory search at [1b] with parent traversal
+  - Directory search at [1b] with parent traversal via findInAncestors [1d]
   - Frontmatter parsing at [2a]
   - Always-rules formatting at [2b]
   - Conditional matching at [3a]
@@ -24,9 +24,9 @@ sections:
           - block:
               id: "1a"
               title: "BuildSystemPrompt calls LoadRules"
-              code: "rulesDir, rules := LoadRules()"
+              code: "_, rules := LoadRules()"
               file: "config.go"
-              line: 157
+              line: 164
             children:
               - text: "LoadRules iterates over both .rules and .claude/rules"
                 children:
@@ -35,21 +35,21 @@ sections:
                       title: "Search both rule directories"
                       code: "for _, dirName := range []string{rulesDirName, \".claude/rules\"} {"
                       file: "config.go"
-                      line: 223
+                      line: 229
                     children:
                       - block:
                           id: "1c"
-                          title: "findDir traverses parent dirs"
+                          title: "findDir calls findInAncestors"
                           code: "rulesDir := findDir(dirName)"
                           file: "config.go"
-                          line: 224
+                          line: 230
                         children:
                           - block:
                               id: "1d"
-                              title: "Check if directory exists"
-                              code: "if info, err := os.Stat(path); err == nil && info.IsDir() {"
+                              title: "findInAncestors checks if path exists"
+                              code: "if err == nil && (!mustBeDir || info.IsDir()) {"
                               file: "config.go"
-                              line: 282
+                              line: 69
 
   - id: 2
     title: "File Parsing"
@@ -62,21 +62,21 @@ sections:
               title: "Parse YAML frontmatter"
               code: "fm, body := ParseFrontmatter(string(data))"
               file: "config.go"
-              line: 252
+              line: 258
             children:
               - block:
                   id: "2b"
                   title: "Unmarshal frontmatter to Rule struct"
                   code: "yaml.Unmarshal([]byte(fm), &rule)"
                   file: "config.go"
-                  line: 259
+                  line: 265
                 children:
                   - block:
                       id: "2c"
                       title: "Append to rules slice"
                       code: "rules = append(rules, ruleFile{"
                       file: "config.go"
-                      line: 262
+                      line: 268
 
   - id: 3
     title: "Rule Categorization"
@@ -89,21 +89,21 @@ sections:
               title: "Format always-loaded rules"
               code: "alwaysRules := formatAlwaysRules(rules)"
               file: "config.go"
-              line: 158
+              line: 165
             children:
               - block:
                   id: "3b"
                   title: "Check if rule has no pattern"
                   code: "if r.Pattern == \"\" {"
                   file: "config.go"
-                  line: 300
+                  line: 288
                 children:
                   - block:
                       id: "3c"
                       title: "Wrap in rule tags"
                       code: "always = append(always, \"<rule source=\\\"\"+r.SourceFile+\"\\\">\\n\"+r.Content+\"\\n</rule>\")"
                       file: "config.go"
-                      line: 301
+                      line: 289
 
   - id: 4
     title: "Conditional Rule Matching"
@@ -123,11 +123,11 @@ sections:
                   title: "Match pattern against file path"
                   code: "if match, _ := doublestar.Match(r.Pattern, relPath); match {"
                   file: "config.go"
-                  line: 328
+                  line: 316
                 children:
                   - block:
                       id: "4c"
                       title: "Append matched rule content"
                       code: "matched = append(matched, \"<rule source=\\\"\"+r.SourceFile+\"\\\">\\n\"+r.Content+\"\\n</rule>\")"
                       file: "config.go"
-                      line: 329
+                      line: 317
