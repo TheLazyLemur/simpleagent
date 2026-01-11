@@ -27,14 +27,14 @@ sections:
               file: "config.go"
               line: 40
             children:
-              - text: "main.go calls LoadConfig on startup"
+              - text: "main.go gets config from BuildSystemPrompt"
                 children:
                   - block:
                       id: "1b"
-                      title: "Load config in main"
-                      code: "config, _, _ := LoadConfig()"
+                      title: "Config from BuildSystemPrompt"
+                      code: "systemPrompt, loadedFiles, config, err := BuildSystemPrompt()"
                       file: "main.go"
-                      line: 150
+                      line: 149
 
   - id: 2
     title: "Server Connection"
@@ -47,7 +47,7 @@ sections:
               title: "Create MCPClients"
               code: "mcpClients = tools.NewMCPClients(ctx, config.MCPServers)"
               file: "main.go"
-              line: 154
+              line: 157
             children:
               - text: "For each server config, connect via stdio"
                 children:
@@ -85,7 +85,7 @@ sections:
                                                   title: "Init with MCPClients in Config"
                                                   code: "tools.Init(tools.Config{MCPClients: mcpClients, ...})"
                                                   file: "main.go"
-                                                  line: 167
+                                                  line: 165
                                                 children:
                                                   - block:
                                                       id: "2f"
@@ -123,7 +123,7 @@ sections:
                               title: "Pass tools to API"
                               code: "toolSet := tools.All()"
                               file: "main.go"
-                              line: 221
+                              line: 219
 
   - id: 4
     title: "Execution"
@@ -136,7 +136,7 @@ sections:
               title: "Execute dispatch"
               code: "result := tools.Execute(block.Name, block.Input)"
               file: "main.go"
-              line: 270
+              line: 268
             children:
               - text: "Try local registry first"
                 children:

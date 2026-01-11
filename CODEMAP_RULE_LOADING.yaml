@@ -26,7 +26,7 @@ sections:
               title: "BuildSystemPrompt calls LoadRules"
               code: "_, rules := LoadRules()"
               file: "config.go"
-              line: 169
+              line: 168
             children:
               - text: "LoadRules iterates over both .rules and .claude/rules"
                 children:
@@ -89,7 +89,7 @@ sections:
               title: "Format always-loaded rules"
               code: "alwaysRules := formatAlwaysRules(rules)"
               file: "config.go"
-              line: 170
+              line: 169
             children:
               - block:
                   id: "3b"

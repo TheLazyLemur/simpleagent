@@ -97,7 +97,7 @@ sections:
               title: "Save call site"
               code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
               file: "main.go"
-              line: 314
+              line: 312
 
   - id: 3
     title: "Session Load"
@@ -301,7 +301,7 @@ sections:
                             ...
                         })
                       file: "main.go"
-                      line: 167
+                      line: 165
       - text: "Direct assignment on session restore (no tools.SetTodos)"
         children:
           - block:
@@ -317,4 +317,4 @@ sections:
               title: "Direct save"
               code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
               file: "main.go"
-              line: 314
+              line: 312

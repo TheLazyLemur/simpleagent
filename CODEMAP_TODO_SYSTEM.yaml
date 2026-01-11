@@ -120,7 +120,7 @@ sections:
                             ...
                         })
                       file: "main.go"
-                      line: 167
+                      line: 165
       - text: "Config.Todos field stores pointer for tool mutation"
         children:
           - block:
@@ -153,7 +153,7 @@ sections:
               title: "saveSession call"
               code: "saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode())"
               file: "main.go"
-              line: 314
+              line: 312
 
   - id: 3
     title: "Reminder System"
@@ -178,7 +178,7 @@ sections:
                             turnsSinceTodoWrite = 0
                         }
                       file: "main.go"
-                      line: 272
+                      line: 270
               - text: "Increment after each user turn"
                 children:
                   - block:
@@ -186,7 +186,7 @@ sections:
                       title: "Counter increment"
                       code: "turnsSinceTodoWrite++"
                       file: "main.go"
-                      line: 316
+                      line: 314
       - text: "hasPending computed locally in main.go before GetReminders"
         children:
           - block:
@@ -201,7 +201,7 @@ sections:
                     }
                 }
               file: "main.go"
-              line: 293
+              line: 291
       - text: "AgentState now includes HasPendingTodos field"
         children:
           - block:
@@ -248,7 +248,7 @@ sections:
                             last.Content += "\n" + reminders
                         }
                       file: "main.go"
-                      line: 300
+                      line: 298
 
   - id: 4
     title: "Display"

@@ -156,10 +156,10 @@ func GetMemoryFilesContent(config *Config, configDir string) (string, []string) 
 }
 
 // BuildSystemPrompt loads config, memory files, and returns the full system prompt
-func BuildSystemPrompt() (string, []string, error) {
+func BuildSystemPrompt() (string, []string, *Config, error) {
 	config, configDir, err := LoadConfig()
 	if err != nil {
-		return systemInstructions, nil, err
+		return systemInstructions, nil, nil, err
 	}
 
 	memoryContent, loadedFiles := GetMemoryFilesContent(config, configDir)
@@ -197,7 +197,7 @@ func BuildSystemPrompt() (string, []string, error) {
 	// Store rules globally for conditional matching
 	globalRules = rules
 
-	return prompt, loaded, nil
+	return prompt, loaded, config, nil
 }
 
 // ParseFrontmatter extracts YAML frontmatter and body from file content

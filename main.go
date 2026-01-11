@@ -146,19 +146,17 @@ func main() {
 	fmt.Println(tools.Dim("ctrl+c to quit"))
 	fmt.Println(tools.Separator())
 
-	// Load config for MCP servers
-	config, _, _ := LoadConfig()
+	systemPrompt, loadedFiles, config, err := BuildSystemPrompt()
+	if err != nil {
+		fmt.Println(tools.Error(fmt.Sprintf("loading config: %v", err)))
+	}
+
 	var mcpClients *tools.MCPClients
 	if len(config.MCPServers) > 0 {
 		ctx := context.Background()
 		mcpClients = tools.NewMCPClients(ctx, config.MCPServers)
 		defer mcpClients.Close()
 		fmt.Println(tools.Status("mcp") + " " + tools.Dim(fmt.Sprintf("%d server(s)", len(config.MCPServers))))
-	}
-
-	systemPrompt, loadedFiles, err := BuildSystemPrompt()
-	if err != nil {
-		fmt.Println(tools.Error(fmt.Sprintf("loading config: %v", err)))
 	}
 	if len(loadedFiles) > 0 {
 		fmt.Println(tools.Status("loaded") + " " + tools.Dim(fmt.Sprintf("%d memory file(s)", len(loadedFiles))))

@@ -50,7 +50,7 @@ sections:
                               title: "main.go Init call"
                               code: "tools.Init(tools.Config{..., Subagent: &tools.SubagentConfig{Client: client, Model: model, SystemPrompt: systemPrompt}})"
                               file: "main.go"
-                              line: 167
+                              line: 165
       - text: "Task tool registered in init with prompt and description params"
         children:
           - block:
