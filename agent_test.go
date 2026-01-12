@@ -19,7 +19,7 @@ func TestNewAgent_CreateNew(t *testing.T) {
 	var todos []tools.Todo
 
 	// when
-	agent, err := NewAgent(sessionID, nil, client, reader, systemPrompt, model, nil, &todos)
+	agent, err := NewAgent(sessionID, nil, client, reader, systemPrompt, "test-provider", model, nil, &todos)
 
 	// then
 	if err != nil {
@@ -61,7 +61,7 @@ func TestNewAgent_Resume(t *testing.T) {
 	var todos []tools.Todo
 
 	// when
-	agent, err := NewAgent(sessionID, sess, client, reader, "prompt", "model", nil, &todos)
+	agent, err := NewAgent(sessionID, sess, client, reader, "prompt", "test-provider", "model", nil, &todos)
 
 	// then
 	if err != nil {
@@ -88,7 +88,7 @@ func TestNewAgent_NilSession(t *testing.T) {
 	var todos []tools.Todo
 
 	// when
-	agent, err := NewAgent("", nil, client, reader, "prompt", "model", nil, &todos)
+	agent, err := NewAgent("", nil, client, reader, "prompt", "test-provider", "model", nil, &todos)
 
 	// then - should still work (creates new session)
 	if err != nil {

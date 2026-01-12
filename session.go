@@ -21,6 +21,7 @@ type SessionMeta struct {
 	ID        string    `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	Provider  string    `json:"provider"`
 	Model     string    `json:"model"`
 }
 
@@ -41,12 +42,13 @@ func sessionPath(id string) string {
 	return filepath.Join(sessionDir, id+".json")
 }
 
-func saveSession(id string, messages []claude.MessageParam, todos []tools.Todo, planMode bool, permissionsMode string) error {
+func saveSession(id string, messages []claude.MessageParam, todos []tools.Todo, planMode bool, permissionsMode, provider, model string) error {
 	sess := SessionFile{
 		Meta: SessionMeta{
 			ID:        id,
 			UpdatedAt: time.Now(),
-			Model:     "MiniMax-M2.1",
+			Provider:  provider,
+			Model:     model,
 		},
 		Messages:        messages,
 		Todos:           todos,

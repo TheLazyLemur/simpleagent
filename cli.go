@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"simpleagent/claude"
 	"simpleagent/tools"
@@ -26,10 +27,12 @@ func RunCLI(listFlag *bool, deleteFlag, resumeFlag *string) (bool, error) {
 
 // AgentSession orchestrates agent session (config → MCP → tools → agent loop)
 func AgentSession(resumeFlag *string) error {
-	client := claude.NewClient(claude.WithBaseURL(baseURL))
 	reader := bufio.NewReader(os.Stdin)
 	var sessionID string
 	var sess *SessionFile
+
+	sessionModel := ""
+	sessionProvider := ""
 
 	// Load or create session
 	if *resumeFlag != "" {
@@ -40,6 +43,12 @@ func AgentSession(resumeFlag *string) error {
 		}
 		sessionTodos = sess.Todos
 		sessionID = sess.Meta.ID
+		if sess.Meta.Model != "" {
+			sessionModel = sess.Meta.Model
+		}
+		if sess.Meta.Provider != "" {
+			sessionProvider = sess.Meta.Provider
+		}
 		permissionsMode := "prompt"
 		if sess.PermissionsMode != "" {
 			permissionsMode = sess.PermissionsMode
@@ -61,9 +70,66 @@ func AgentSession(resumeFlag *string) error {
 
 	// Build system prompt and config
 	systemPrompt, loadedFiles, config, err := BuildSystemPrompt()
+	configErr := err != nil
 	if err != nil {
 		fmt.Println(tools.Error(fmt.Sprintf("loading config: %v", err)))
 	}
+	if config == nil {
+		config = &Config{}
+	}
+	if config.Provider == "" || config.Model == "" {
+		if err := applyProviderDefaults(config); err != nil {
+			return err
+		}
+	}
+	if sessionProvider == "" {
+		sessionProvider = config.Provider
+	}
+	if sessionModel == "" {
+		sessionModel = config.Model
+	}
+	providerDiff := sessionProvider != "" && sessionProvider != config.Provider
+	modelDiff := sessionModel != "" && sessionModel != config.Model
+	if !configErr && sess != nil && (providerDiff || modelDiff) {
+		var mismatchLabel string
+		switch {
+		case providerDiff && modelDiff:
+			mismatchLabel = "provider/model"
+		case providerDiff:
+			mismatchLabel = "provider"
+		case modelDiff:
+			mismatchLabel = "model"
+		}
+		fmt.Printf("%s session %s differs: session %s/%s, config %s/%s. switch to config? [y/N]: ", tools.Prompt(), mismatchLabel, sessionProvider, sessionModel, config.Provider, config.Model)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println(tools.Error(fmt.Sprintf("reading prompt: %v", err)))
+			response = ""
+		}
+		response = strings.TrimSpace(strings.ToLower(response))
+		if response == "y" || response == "yes" {
+			sessionProvider = config.Provider
+			sessionModel = config.Model
+		}
+	}
+	providerDefaults, ok := ProviderDefaultsByName[sessionProvider]
+	if !ok {
+		return fmt.Errorf("invalid provider %q", sessionProvider)
+	}
+	if sessionModel == "" {
+		sessionModel = providerDefaults.DefaultModel
+	}
+	modelAllowed := false
+	for _, model := range providerDefaults.Models {
+		if model == sessionModel {
+			modelAllowed = true
+			break
+		}
+	}
+	if !modelAllowed {
+		return fmt.Errorf("invalid model %q for provider %q", sessionModel, sessionProvider)
+	}
+	client := claude.NewClient(claude.WithBaseURL(providerDefaults.BaseURL))
 
 	// Setup MCP clients
 	var mcpClients *tools.MCPClients
@@ -90,13 +156,13 @@ func AgentSession(resumeFlag *string) error {
 		Todos:           &sessionTodos,
 		Subagent: &tools.SubagentConfig{
 			Client:       client,
-			Model:        model,
+			Model:        sessionModel,
 			SystemPrompt: systemPrompt,
 		},
 	})
 
 	// Create agent
-	agent, err := NewAgent(sessionID, sess, client, reader, systemPrompt, model, mcpClients, &sessionTodos)
+	agent, err := NewAgent(sessionID, sess, client, reader, systemPrompt, sessionProvider, sessionModel, mcpClients, &sessionTodos)
 	if err != nil {
 		return fmt.Errorf("creating agent: %w", err)
 	}

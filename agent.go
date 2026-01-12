@@ -26,6 +26,7 @@ type Agent struct {
 
 	// Config
 	systemPrompt string
+	provider     string
 	model        string
 }
 
@@ -36,6 +37,7 @@ func NewAgent(
 	client *claude.Client,
 	reader *bufio.Reader,
 	systemPrompt string,
+	provider string,
 	model string,
 	mcpClients *tools.MCPClients,
 	todos *[]tools.Todo,
@@ -47,6 +49,7 @@ func NewAgent(
 		sessionID:       sessionID,
 		todos:           todos,
 		systemPrompt:    systemPrompt,
+		provider:        provider,
 		model:           model,
 		permissionsMode: "prompt",
 	}
@@ -56,6 +59,12 @@ func NewAgent(
 		agent.messages = sess.Messages
 		*agent.todos = sess.Todos
 		agent.planMode = sess.PlanMode
+		if sess.Meta.Provider != "" {
+			agent.provider = sess.Meta.Provider
+		}
+		if sess.Meta.Model != "" {
+			agent.model = sess.Meta.Model
+		}
 		if sess.PermissionsMode != "" {
 			agent.permissionsMode = sess.PermissionsMode
 		}
@@ -103,7 +112,7 @@ func (a *Agent) Save() error {
 	if a.sessionID == "" {
 		return nil
 	}
-	if err := saveSession(a.sessionID, a.messages, *a.todos, a.planMode, a.permissionsMode); err != nil {
+	if err := saveSession(a.sessionID, a.messages, *a.todos, a.planMode, a.permissionsMode, a.provider, a.model); err != nil {
 		return err
 	}
 	a.turnsSinceTodoWrite++

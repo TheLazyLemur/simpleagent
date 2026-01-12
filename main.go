@@ -46,13 +46,6 @@ func runBashQuick(cmd string) string {
 	return string(out)
 }
 
-func getEnvOrDefault(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
-
 func makeSkillLoader() func(string) (*tools.SkillInfo, error) {
 	return func(name string) (*tools.SkillInfo, error) {
 		skill, err := LoadSkill(name)
@@ -69,8 +62,6 @@ func makeSkillLoader() func(string) (*tools.SkillInfo, error) {
 }
 
 var (
-	baseURL      = getEnvOrDefault("ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic")
-	model        = getEnvOrDefault("ANTHROPIC_MODEL", "MiniMax-M2.1")
 	sessionTodos []tools.Todo
 )
 

@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"simpleagent/tools"
@@ -36,8 +38,10 @@ Todo tracking (use todo_write for multi-step tasks):
 </system-instructions>`
 
 type Config struct {
-	MemoryFiles []string               `json:"memory_files"`
+	MemoryFiles []string                `json:"memory_files"`
 	MCPServers  []tools.MCPServerConfig `json:"mcp_servers"`
+	Provider    string                  `json:"provider"`
+	Model       string                  `json:"model"`
 }
 
 // Rule represents a rule file with YAML frontmatter
@@ -55,6 +59,39 @@ type ruleFile struct {
 // DefaultMemoryFiles returns the default memory files when no config exists
 func DefaultMemoryFiles() []string {
 	return []string{"CLAUDE.md"}
+}
+
+func applyProviderDefaults(cfg *Config) error {
+	cfg.Provider = strings.ToLower(strings.TrimSpace(cfg.Provider))
+	cfg.Model = strings.TrimSpace(cfg.Model)
+
+	if cfg.Provider == "" {
+		cfg.Provider = "minimax"
+	}
+
+	defaults, ok := ProviderDefaultsByName[cfg.Provider]
+	if !ok {
+		providers := make([]string, 0, len(ProviderDefaultsByName))
+		for name := range ProviderDefaultsByName {
+			providers = append(providers, name)
+		}
+		sort.Strings(providers)
+		return fmt.Errorf("invalid provider %q (allowed: %s)", cfg.Provider, strings.Join(providers, ", "))
+	}
+
+	if cfg.Model == "" {
+		cfg.Model = defaults.DefaultModel
+	}
+
+	for _, model := range defaults.Models {
+		if model == cfg.Model {
+			return nil
+		}
+	}
+
+	models := append([]string(nil), defaults.Models...)
+	sort.Strings(models)
+	return fmt.Errorf("invalid model %q for provider %q (allowed: %s)", cfg.Model, cfg.Provider, strings.Join(models, ", "))
 }
 
 // wrapXML wraps content in an XML tag with source attribute
@@ -98,7 +135,11 @@ func LoadConfig() (*Config, string, error) {
 	configPath, err := FindConfig()
 	if err != nil {
 		// No config file found, return defaults (resolve from cwd)
-		return &Config{MemoryFiles: DefaultMemoryFiles()}, "", nil
+		cfg := &Config{MemoryFiles: DefaultMemoryFiles()}
+		if err := applyProviderDefaults(cfg); err != nil {
+			return nil, "", err
+		}
+		return cfg, "", nil
 	}
 	configDir := filepath.Dir(filepath.Dir(configPath)) // go up from .simpleagent/config.json
 
@@ -125,6 +166,9 @@ func LoadConfig() (*Config, string, error) {
 	}
 
 	cfg.MemoryFiles = validFiles
+	if err := applyProviderDefaults(&cfg); err != nil {
+		return nil, "", err
+	}
 	return &cfg, configDir, nil
 }
 

@@ -98,12 +98,10 @@ sections:
               title: "sessionTodos declaration"
               code: |
                 var (
-                    baseURL      = getEnvOrDefault("ANTHROPIC_BASE_URL", "...")
-                    model        = getEnvOrDefault("ANTHROPIC_MODEL", "...")
                     sessionTodos []tools.Todo
                 )
               file: "main.go"
-              line: 71
+              line: 64
             children:
               - text: "Pointer passed to tools.Init via Config.Todos in AgentSession"
                 children:

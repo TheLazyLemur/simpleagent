@@ -25,13 +25,13 @@ sections:
               title: "Session todos global"
               code: "sessionTodos []tools.Todo"
               file: "main.go"
-              line: 74
+              line: 65
           - block:
               id: "1b"
               title: "Skill loader helper"
               code: "func makeSkillLoader() func(string) (*tools.SkillInfo, error) {"
               file: "main.go"
-              line: 56
+              line: 49
       - text: "Entry point parses flags, dispatches to AgentSession"
         children:
           - block:
@@ -55,9 +55,9 @@ sections:
                           - block:
                               id: "1e"
                               title: "Client creation"
-                              code: "client := claude.NewClient(claude.WithBaseURL(baseURL))"
+                              code: "client := claude.NewClient(claude.WithBaseURL(providerDefaults.BaseURL))"
                               file: "cli.go"
-                              line: 29
+                              line: 128
                       - text: "Loads or creates session based on resume flag"
                         children:
                           - block:
@@ -111,9 +111,9 @@ sections:
                           - block:
                               id: "1k"
                               title: "NewAgent"
-                              code: "agent, err := NewAgent(sessionID, sess, client, reader, systemPrompt, model, mcpClients, &sessionTodos)"
+                              code: "agent, err := NewAgent(sessionID, sess, client, reader, systemPrompt, sessionProvider, sessionModel, mcpClients, &sessionTodos)"
                               file: "cli.go"
-                              line: 99
+                              line: 161
 
   - id: 2
     title: "Input Loop"
