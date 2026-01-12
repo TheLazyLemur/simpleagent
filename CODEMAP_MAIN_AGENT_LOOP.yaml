@@ -39,7 +39,7 @@ sections:
               title: "Flag parsing"
               code: "resumeFlag := flag.String(\"resume\", \"\", \"Resume a session by ID\")"
               file: "main.go"
-              line: 93
+              line: 91
             children:
               - text: "AgentSession orchestrates initialization and agent loop"
                 children:
@@ -343,7 +343,7 @@ sections:
               title: "Execute entry"
               code: "func Execute(name string, input json.RawMessage) Result {"
               file: "tools/tools.go"
-              line: 96
+              line: 131
             children:
               - text: "Checks skill tool restrictions"
                 children:
@@ -352,7 +352,7 @@ sections:
                       title: "Skill check"
                       code: "if allowedTools != nil && !allowedTools[name] {"
                       file: "tools/tools.go"
-                      line: 98
+                      line: 133
               - text: "Looks up local tool in registry"
                 children:
                   - block:
@@ -360,7 +360,7 @@ sections:
                       title: "Registry lookup"
                       code: "if fn, ok := registry[name]; ok {"
                       file: "tools/tools.go"
-                      line: 101
+                      line: 136
               - text: "Falls back to MCP server tools"
                 children:
                   - block:
@@ -368,7 +368,7 @@ sections:
                       title: "MCP fallback"
                       code: "if result, found := globalMCPClients.Execute(context.Background(), name, input); found {"
                       file: "tools/tools.go"
-                      line: 106
+                      line: 141
 
   - id: 5
     title: "Session Persistence"
