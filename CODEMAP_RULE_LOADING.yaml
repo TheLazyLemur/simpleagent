@@ -35,7 +35,7 @@ sections:
                       title: "Search both rule directories"
                       code: "for _, dirName := range []string{rulesDirName, \".claude/rules\"} {"
                       file: "config.go"
-                      line: 234
+                      line: 233
                     children:
                       - block:
                           id: "1c"
