@@ -135,11 +135,13 @@ sections:
                         return nil, err
                     }
                     var sess SessionFile
-                    json.Unmarshal(data, &sess)
+                    if err := json.Unmarshal(data, &sess); err != nil {
+                        return nil, err
+                    }
                     return &sess, nil
                 }
               file: "session.go"
-              line: 67
+              line: 70
       - text: "AgentSession handles -resume flag"
         children:
           - block:
@@ -193,7 +195,7 @@ sections:
               title: "Read dir"
               code: "entries, err := os.ReadDir(sessionDir)"
               file: "session.go"
-              line: 78
+              line: 83
             children:
               - text: "Iterates .json files, loads each"
                 children:
@@ -207,7 +209,7 @@ sections:
                             }
                             sess, err := loadSession(strings.TrimSuffix(e.Name(), ".json"))
                       file: "session.go"
-                      line: 89
+                      line: 94
                     children:
                       - text: "Sorts by UpdatedAt descending"
                         children:
@@ -219,7 +221,7 @@ sections:
                                     return b.Meta.UpdatedAt.Compare(a.Meta.UpdatedAt)
                                 })
                               file: "session.go"
-                              line: 105
+                              line: 110
                             children:
                               - text: "Renders table with lipgloss styling"
                                 children:
@@ -234,7 +236,7 @@ sections:
                                             cellStyle.Render(fmt.Sprintf("%d", len(s.Messages))),
                                         )
                                       file: "session.go"
-                                      line: 124
+                                      line: 129
       - text: "RunCLI handles -sessions flag"
         children:
           - block:
@@ -263,11 +265,14 @@ sections:
                         fmt.Println(tools.Error(fmt.Sprintf("session %s not found", id)))
                         return
                     }
-                    os.Remove(path)
+                    if err := os.Remove(path); err != nil {
+                        fmt.Println(tools.Error(fmt.Sprintf("delete failed: %v", err)))
+                        return
+                    }
                     fmt.Println(tools.Success("deleted " + id))
                 }
               file: "session.go"
-              line: 134
+              line: 139
       - text: "RunCLI handles -delete flag"
         children:
           - block:
@@ -315,7 +320,7 @@ sections:
               title: "sessionTodos var"
               code: "sessionTodos []tools.Todo"
               file: "main.go"
-              line: 76
+              line: 74
             children:
               - text: "Pointer passed to tools.Init in AgentSession"
                 children:
@@ -355,7 +360,7 @@ sections:
                       title: "Agent restore"
                       code: "*agent.todos = sess.Todos"
                       file: "agent.go"
-                      line: 55
+                      line: 57
       - text: "agent.Save() passes todos directly to saveSession"
         children:
           - block:
