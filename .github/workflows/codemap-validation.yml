@@ -54,30 +54,17 @@ jobs:
                           line: 42               # exact line, 1-indexed
             ```
 
-            ## Validation
+            ## Instructions
 
-            1. Find all CODEMAP_*.yaml files (if none exist, validation passes)
-            2. For each codemap:
-               - Verify file paths exist
-               - Verify line numbers are correct (read file, check line)
-               - Verify `code` field matches actual code at that line
-            3. Post result to PR using: `gh pr comment $PR_NUMBER --body "..."`
+            1. Run: `ls CODEMAP_*.yaml` to find codemaps
+            2. If no codemaps exist, run this exact command then stop:
+               `gh pr comment $PR_NUMBER --body "Codemap Validation: No codemaps found"`
+            3. For each codemap, read it and check each block's file:line has matching code
+            4. MANDATORY: Run `gh pr comment` to post results - do not skip this step
 
-            ## Output Format
+            If all valid:
+            `gh pr comment $PR_NUMBER --body "Codemap Validation: All codemaps up-to-date"`
 
-            If ALL codemaps valid:
-            ```
-            gh pr comment $PR_NUMBER --body "## Codemap Validation
-
-            All codemaps are up-to-date."
-            ```
-
-            If ANY issues found:
-            ```
-            gh pr comment $PR_NUMBER --body "## Codemap Validation
-
-            **Issues found:**
-            - CODEMAP_X.yaml: line 42 references file.go:50 but code has changed
-            - ..."
-            ```
-            Then exit with error: `exit 1`
+            If issues:
+            `gh pr comment $PR_NUMBER --body "Codemap Validation FAILED: [list issues]"`
+            Then: `exit 1`
