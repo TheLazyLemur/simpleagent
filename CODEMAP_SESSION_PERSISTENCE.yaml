@@ -33,14 +33,14 @@ sections:
               file: "session.go"
               line: 35
             children:
-              - text: "Called when no -resume flag provided"
+              - text: "Called when no -resume flag provided in AgentSession"
                 children:
                   - block:
                       id: "1b"
                       title: "New session branch"
                       code: "sessionID = newSessionID()"
-                      file: "main.go"
-                      line: 142
+                      file: "cli.go"
+                      line: 55
 
   - id: 2
     title: "Session Save"
@@ -91,17 +91,33 @@ sections:
                                 return os.WriteFile(sessionPath(id), data, 0644)
                               file: "session.go"
                               line: 63
-      - text: "Called after agentic loop - uses sessionTodos directly (main.go owns state)"
+      - text: "Called after agentic loop via agent.Save() from AgentSession"
         children:
           - block:
               id: "2d"
               title: "Save call site"
               code: |
-                if err := saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode()); err != nil {
+                if err := agent.Save(); err != nil {
                     fmt.Println(tools.Error(fmt.Sprintf("save failed: %v", err)))
                 }
-              file: "main.go"
-              line: 312
+              file: "cli.go"
+              line: 142
+            children:
+              - text: "agent.Save() method calls saveSession with agent state"
+                children:
+                  - block:
+                      id: "2e"
+                      title: "agent.Save"
+                      code: |
+                        func (a *Agent) Save() error {
+                            if err := saveSession(a.sessionID, a.messages, *a.todos, a.planMode, a.permissionsMode); err != nil {
+                                return err
+                            }
+                            a.turnsSinceTodoWrite++
+                            return nil
+                        }
+                      file: "agent.go"
+                      line: 102
 
   - id: 3
     title: "Session Load"
@@ -124,39 +140,47 @@ sections:
                 }
               file: "session.go"
               line: 67
-      - text: "main.go handles -resume flag"
+      - text: "AgentSession handles -resume flag"
         children:
           - block:
               id: "3b"
               title: "Resume flag check"
               code: "if *resumeFlag != \"\""
-              file: "main.go"
-              line: 121
+              file: "cli.go"
+              line: 35
             children:
               - text: "Loads session and restores state"
                 children:
                   - block:
                       id: "3c"
                       title: "Load session"
-                      code: "sess, err := loadSession(*resumeFlag)"
-                      file: "main.go"
-                      line: 122
+                      code: "sess, err = loadSession(*resumeFlag)"
+                      file: "cli.go"
+                      line: 37
                     children:
-                      - text: "Restores messages, todos, modes - assigns directly to sessionTodos (no tools.SetTodos)"
+                      - text: "Assigns todos to package-level sessionTodos, passes sess to NewAgent"
                         children:
                           - block:
                               id: "3d"
-                              title: "Restore state"
-                              code: |
-                                messages = sess.Messages
-                                sessionTodos = sess.Todos
-                                planMode = sess.PlanMode
-                                sessionID = sess.Meta.ID
-                                if sess.PermissionsMode != "" {
-                                    permissionsMode = sess.PermissionsMode
-                                }
-                              file: "main.go"
-                              line: 127
+                              title: "Restore todos"
+                              code: "sessionTodos = sess.Todos"
+                              file: "cli.go"
+                              line: 41
+                            children:
+                              - text: "NewAgent restores other state from sess"
+                                children:
+                                  - block:
+                                      id: "3e"
+                                      title: "NewAgent restore"
+                                      code: |
+                                        agent.messages = sess.Messages
+                                        *agent.todos = sess.Todos
+                                        agent.planMode = sess.PlanMode
+                                        if sess.PermissionsMode != "" {
+                                            agent.permissionsMode = sess.PermissionsMode
+                                        }
+                                      file: "agent.go"
+                                      line: 54
 
   - id: 4
     title: "Session List"
@@ -211,7 +235,7 @@ sections:
                                         )
                                       file: "session.go"
                                       line: 124
-      - text: "main.go handles -sessions flag"
+      - text: "RunCLI handles -sessions flag"
         children:
           - block:
               id: "4e"
@@ -219,9 +243,9 @@ sections:
               code: |
                 case *listFlag:
                     listSessions()
-                    return
-              file: "main.go"
-              line: 104
+                    return false, nil
+              file: "cli.go"
+              line: 17
 
   - id: 5
     title: "Session Delete"
@@ -244,7 +268,7 @@ sections:
                 }
               file: "session.go"
               line: 134
-      - text: "main.go handles -delete flag"
+      - text: "RunCLI handles -delete flag"
         children:
           - block:
               id: "5b"
@@ -252,9 +276,9 @@ sections:
               code: |
                 case *deleteFlag != "":
                     deleteSession(*deleteFlag)
-                    return
-              file: "main.go"
-              line: 107
+                    return false, nil
+              file: "cli.go"
+              line: 20
 
   - id: 6
     title: "Session Path Helper"
@@ -282,7 +306,7 @@ sections:
 
   - id: 7
     title: "Todo State Ownership"
-    summary: "main.go owns sessionTodos, passes pointer to tools.Init"
+    summary: "main.go owns sessionTodos, passed through cli.go to Agent"
     tree:
       - text: "sessionTodos declared as package-level var in main.go"
         children:
@@ -293,7 +317,7 @@ sections:
               file: "main.go"
               line: 76
             children:
-              - text: "Pointer passed to tools.Init for tool access"
+              - text: "Pointer passed to tools.Init in AgentSession"
                 children:
                   - block:
                       id: "7b"
@@ -304,24 +328,42 @@ sections:
                             Todos: &sessionTodos,
                             ...
                         })
-                      file: "main.go"
-                      line: 165
-      - text: "Direct assignment on session restore (no tools.SetTodos)"
-        children:
-          - block:
-              id: "7c"
-              title: "Direct restore"
-              code: "sessionTodos = sess.Todos"
-              file: "main.go"
-              line: 128
-      - text: "Passed directly to saveSession (no tools.GetTodos)"
+                      file: "cli.go"
+                      line: 85
+                    children:
+                      - text: "Same pointer passed to NewAgent"
+                        children:
+                          - block:
+                              id: "7c"
+                              title: "NewAgent todos"
+                              code: "agent, err := NewAgent(sessionID, sess, client, reader, systemPrompt, model, mcpClients, &sessionTodos)"
+                              file: "cli.go"
+                              line: 99
+      - text: "Direct assignment on session restore in AgentSession"
         children:
           - block:
               id: "7d"
+              title: "Direct restore"
+              code: "sessionTodos = sess.Todos"
+              file: "cli.go"
+              line: 41
+            children:
+              - text: "Agent also assigns to its local pointer"
+                children:
+                  - block:
+                      id: "7e"
+                      title: "Agent restore"
+                      code: "*agent.todos = sess.Todos"
+                      file: "agent.go"
+                      line: 55
+      - text: "agent.Save() passes todos directly to saveSession"
+        children:
+          - block:
+              id: "7f"
               title: "Direct save"
               code: |
-                if err := saveSession(...); err != nil {
-                    fmt.Println(tools.Error(...))
+                if err := saveSession(a.sessionID, a.messages, *a.todos, a.planMode, a.permissionsMode); err != nil {
+                    return err
                 }
-              file: "main.go"
-              line: 312
+              file: "agent.go"
+              line: 106

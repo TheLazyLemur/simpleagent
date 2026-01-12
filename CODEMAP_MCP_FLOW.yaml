@@ -27,14 +27,14 @@ sections:
               file: "config.go"
               line: 40
             children:
-              - text: "main.go gets config from BuildSystemPrompt"
+              - text: "AgentSession gets config from BuildSystemPrompt"
                 children:
                   - block:
                       id: "1b"
                       title: "Config from BuildSystemPrompt"
                       code: "systemPrompt, loadedFiles, config, err := BuildSystemPrompt()"
-                      file: "main.go"
-                      line: 149
+                      file: "cli.go"
+                      line: 63
 
   - id: 2
     title: "Server Connection"
@@ -46,8 +46,8 @@ sections:
               id: "2a"
               title: "Create MCPClients"
               code: "mcpClients = tools.NewMCPClients(ctx, config.MCPServers)"
-              file: "main.go"
-              line: 157
+              file: "cli.go"
+              line: 72
             children:
               - text: "For each server config, connect via stdio"
                 children:
@@ -84,8 +84,8 @@ sections:
                                                   id: "2e"
                                                   title: "Init with MCPClients in Config"
                                                   code: "tools.Init(tools.Config{MCPClients: mcpClients, ...})"
-                                                  file: "main.go"
-                                                  line: 165
+                                                  file: "cli.go"
+                                                  line: 85
                                                 children:
                                                   - block:
                                                       id: "2f"
@@ -116,14 +116,14 @@ sections:
                       file: "tools/mcp.go"
                       line: 85
                     children:
-                      - text: "Agent loop requests with full tool set"
+                      - text: "RunInferenceTurn requests with full tool set"
                         children:
                           - block:
                               id: "3c"
                               title: "Pass tools to API"
                               code: "toolSet := tools.All()"
-                              file: "main.go"
-                              line: 219
+                              file: "agent.go"
+                              line: 116
 
   - id: 4
     title: "Execution"
@@ -135,8 +135,8 @@ sections:
               id: "4a"
               title: "Execute dispatch"
               code: "result := tools.Execute(block.Name, block.Input)"
-              file: "main.go"
-              line: 268
+              file: "agent.go"
+              line: 165
             children:
               - text: "Try local registry first"
                 children:

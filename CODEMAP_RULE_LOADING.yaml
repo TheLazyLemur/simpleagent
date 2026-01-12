@@ -122,8 +122,8 @@ sections:
                   id: "4b"
                   title: "Init passes RuleMatcher via Config"
                   code: "tools.Init(tools.Config{...RuleMatcher: GetMatchingRules,...})"
-                  file: "main.go"
-                  line: 170
+                  file: "cli.go"
+                  line: 85
                 children:
                   - block:
                       id: "4c"

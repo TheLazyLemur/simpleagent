@@ -89,7 +89,7 @@ sections:
 
   - id: 2
     title: "State & Persistence"
-    summary: "main.go owns sessionTodos, passes pointer to tools.Init"
+    summary: "main.go owns sessionTodos, passed to tools.Init and Agent"
     tree:
       - text: "main.go owns the sessionTodos slice"
         children:
@@ -103,9 +103,9 @@ sections:
                     sessionTodos []tools.Todo
                 )
               file: "main.go"
-              line: 73
+              line: 71
             children:
-              - text: "Pointer passed to tools.Init via Config.Todos"
+              - text: "Pointer passed to tools.Init via Config.Todos in AgentSession"
                 children:
                   - block:
                       id: "2b"
@@ -119,8 +119,8 @@ sections:
                             Todos:           &sessionTodos,
                             ...
                         })
-                      file: "main.go"
-                      line: 165
+                      file: "cli.go"
+                      line: 85
       - text: "Config.Todos field stores pointer for tool mutation"
         children:
           - block:
@@ -146,65 +146,84 @@ sections:
                       code: "configTodos = cfg.Todos"
                       file: "tools/tools.go"
                       line: 45
-      - text: "SessionFile includes todos in JSON"
+      - text: "Agent.Save() persists todos via saveSession"
         children:
           - block:
               id: "2e"
-              title: "saveSession call"
+              title: "agent.Save call from cli.go"
               code: |
-                if err := saveSession(...); err != nil {
-                    fmt.Println(tools.Error(...))
+                if err := agent.Save(); err != nil {
+                    fmt.Println(tools.Error(fmt.Sprintf("save failed: %v", err)))
                 }
-              file: "main.go"
-              line: 312
+              file: "cli.go"
+              line: 142
+            children:
+              - block:
+                  id: "2e2"
+                  title: "Save method"
+                  code: |
+                    func (a *Agent) Save() error {
+                        if err := saveSession(a.sessionID, a.messages, *a.todos, a.planMode, a.permissionsMode); err != nil {
+                            return err
+                        }
+                        a.turnsSinceTodoWrite++
+                        return nil
+                    }
+                  file: "agent.go"
+                  line: 102
 
   - id: 3
     title: "Reminder System"
-    summary: "Nudge injection after 3 turns without TodoWrite"
+    summary: "Nudge injection after 3 turns without TodoWrite (Agent tracks counter)"
     tree:
-      - text: "turnsSinceTodoWrite tracks turns in main.go"
+      - text: "Agent.turnsSinceTodoWrite tracks turns"
         children:
           - block:
               id: "3a"
-              title: "Counter init"
-              code: "turnsSinceTodoWrite := 0"
-              file: "main.go"
-              line: 116
+              title: "Counter in Agent struct"
+              code: |
+                type Agent struct {
+                    ...
+                    turnsSinceTodoWrite int
+                    ...
+                }
+              file: "agent.go"
+              line: 13
             children:
               - text: "Reset to 0 when TodoWrite executed"
                 children:
                   - block:
                       id: "3b"
-                      title: "Counter reset"
+                      title: "Counter reset in RunInferenceTurn"
                       code: |
                         if block.Name == "TodoWrite" {
-                            turnsSinceTodoWrite = 0
+                            a.turnsSinceTodoWrite = 0
                         }
-                      file: "main.go"
-                      line: 270
-              - text: "Increment after each user turn"
+                      file: "agent.go"
+                      line: 167
+              - text: "Increment in Save() after each user turn"
                 children:
                   - block:
                       id: "3c"
-                      title: "Counter increment"
-                      code: "turnsSinceTodoWrite++"
-                      file: "main.go"
-                      line: 314
-      - text: "hasPending computed locally in main.go before GetReminders"
+                      title: "Counter increment in Save"
+                      code: "a.turnsSinceTodoWrite++"
+                      file: "agent.go"
+                      line: 109
+      - text: "hasPending computed in RunInferenceTurn before GetReminders"
         children:
           - block:
               id: "3d"
               title: "hasPending computation"
               code: |
                 hasPending := false
-                for _, t := range sessionTodos {
+                for _, t := range *a.todos {
                     if t.Status == "pending" || t.Status == "in_progress" {
                         hasPending = true
                         break
                     }
                 }
-              file: "main.go"
-              line: 291
+              file: "agent.go"
+              line: 188
       - text: "AgentState now includes HasPendingTodos field"
         children:
           - block:
@@ -235,23 +254,23 @@ sections:
               file: "reminders.go"
               line: 24
             children:
-              - text: "Injected via GetReminders into tool result"
+              - text: "Injected via GetReminders into tool result in RunInferenceTurn"
                 children:
                   - block:
                       id: "3g"
                       title: "GetReminders call"
                       code: |
                         state := &AgentState{
-                            PlanMode:            planMode,
-                            TurnsSinceTodoWrite: turnsSinceTodoWrite,
+                            PlanMode:            a.planMode,
+                            TurnsSinceTodoWrite: a.turnsSinceTodoWrite,
                             HasPendingTodos:     hasPending,
                         }
                         if reminders := GetReminders(state); reminders != "" {
                             last := &toolResults[len(toolResults)-1]
                             last.Content += "\n" + reminders
                         }
-                      file: "main.go"
-                      line: 298
+                      file: "agent.go"
+                      line: 195
 
   - id: 4
     title: "Display"

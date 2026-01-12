@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/charmbracelet/glamour"
-	"simpleagent/claude"
 	"simpleagent/tools"
 )
 
@@ -100,219 +98,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	switch {
-	case *listFlag:
-		listSessions()
-		return
-	case *deleteFlag != "":
-		deleteSession(*deleteFlag)
-		return
-	}
-
-	client := claude.NewClient(claude.WithBaseURL(baseURL))
-	reader := bufio.NewReader(os.Stdin)
-	var messages []claude.MessageParam
-	var sessionID string
-	turnsSinceTodoWrite := 0
-
-	var planMode bool
-	permissionsMode := "prompt" // default to prompt mode
-
-	if *resumeFlag != "" {
-		sess, err := loadSession(*resumeFlag)
-		if err != nil {
-			fmt.Println(tools.Error(fmt.Sprintf("loading session: %v", err)))
-			os.Exit(1)
-		}
-		messages = sess.Messages
-		sessionTodos = sess.Todos
-		planMode = sess.PlanMode
-		sessionID = sess.Meta.ID
-		if sess.PermissionsMode != "" {
-			permissionsMode = sess.PermissionsMode
-		}
-		fmt.Println(tools.Status("resumed") + " " + tools.Dim(sessionID))
-		if planMode {
-			fmt.Println(tools.Plan("plan mode"))
-		}
-		if permissionsMode == "accept_all" {
-			fmt.Println(tools.Warning("accept-all permissions"))
-		}
-	} else {
-		sessionID = newSessionID()
-		fmt.Println(tools.Status("new session") + " " + tools.Dim(sessionID))
-	}
-
-	fmt.Println(tools.Dim("ctrl+c to quit"))
-	fmt.Println(tools.Separator())
-
-	systemPrompt, loadedFiles, config, err := BuildSystemPrompt()
+	shouldContinue, err := RunCLI(listFlag, deleteFlag, resumeFlag)
 	if err != nil {
-		fmt.Println(tools.Error(fmt.Sprintf("loading config: %v", err)))
+		fmt.Println(tools.Error(err.Error()))
+		os.Exit(1)
+	}
+	if !shouldContinue {
+		return
 	}
 
-	var mcpClients *tools.MCPClients
-	if len(config.MCPServers) > 0 {
-		ctx := context.Background()
-		mcpClients = tools.NewMCPClients(ctx, config.MCPServers)
-		defer mcpClients.Close()
-		fmt.Println(tools.Status("mcp") + " " + tools.Dim(fmt.Sprintf("%d server(s)", len(config.MCPServers))))
-	}
-	if len(loadedFiles) > 0 {
-		fmt.Println(tools.Status("loaded") + " " + tools.Dim(fmt.Sprintf("%d memory file(s)", len(loadedFiles))))
-	}
-
-	tools.Init(tools.Config{
-		MCPClients:      mcpClients,
-		PermissionsMode: permissionsMode,
-		RuleMatcher:     GetMatchingRules,
-		SkillLoader:     makeSkillLoader(),
-		Todos:           &sessionTodos,
-		Subagent: &tools.SubagentConfig{
-			Client:       client,
-			Model:        model,
-			SystemPrompt: systemPrompt,
-		},
-	})
-
-	for {
-		fmt.Print(tools.Prompt())
-		input := readMultiLine(reader)
-		if input == "" {
-			continue
-		}
-
-		// Handle commands
-		if input == "/plan" {
-			planMode = !planMode
-			if planMode {
-				fmt.Println(tools.Plan("plan mode") + " " + tools.Dim("read-only"))
-			} else {
-				fmt.Println(tools.Status("plan mode off") + " " + tools.Dim("full access"))
-			}
-			continue
-		}
-
-		// !! - run bash and add to context
-		if after, ok := strings.CutPrefix(input, "!!"); ok {
-			cmd := after
-			out := runBashQuick(cmd)
-			fmt.Print(out)
-			messages = append(messages, claude.MessageParam{
-				Role:    "user",
-				Content: fmt.Sprintf("$ %s\n%s", cmd, out),
-			})
-			continue
-		}
-
-		// ! - run bash, output only (not added to context)
-		if after, ok := strings.CutPrefix(input, "!"); ok {
-			cmd := after
-			fmt.Print(runBashQuick(cmd))
-			continue
-		}
-
-		fmt.Printf("%s %s\n", tools.User(), input)
-		messages = append(messages, claude.MessageParam{Role: "user", Content: input})
-
-		for {
-			toolSet := tools.All()
-			if planMode {
-				toolSet = tools.ReadOnly()
-			}
-
-			stream := client.Messages.Stream(claude.MessageCreateParams{
-				Model:     model,
-				MaxTokens: 4096,
-				System:    systemPrompt,
-				Messages:  messages,
-				Tools:     toolSet,
-				Thinking:  &claude.ThinkingConfig{Type: "enabled"},
-			})
-
-			var textBuffer strings.Builder
-			stream.OnText(func(s string) {
-				textBuffer.WriteString(s)
-			})
-			stream.OnThinking(func(s string) {
-				fmt.Print(tools.Thinking(s))
-			})
-
-			msg, err := stream.FinalMessage()
-			if err != nil {
-				fmt.Printf("\n%s\n", tools.Error(err.Error()))
-				break
-			}
-			fmt.Println("")
-
-			// Render collected text with glamour
-			if text := textBuffer.String(); text != "" {
-				fmt.Printf("%s\n", tools.Agent())
-				if mdRenderer != nil {
-					rendered, err := mdRenderer.Render(text)
-					if err == nil {
-						fmt.Print(strings.TrimSpace(rendered))
-					} else {
-						fmt.Print(text)
-					}
-				} else {
-					fmt.Print(text)
-				}
-			}
-
-			messages = append(messages, claude.MessageParam{Role: "assistant", Content: msg.Content})
-
-			var toolResults []claude.ToolResultBlock
-			for _, block := range msg.Content {
-				if block.Type == "tool_use" {
-					result := tools.Execute(block.Name, block.Input)
-					result.Render()
-					if block.Name == "TodoWrite" {
-						turnsSinceTodoWrite = 0
-					}
-					// Check if user accepted the plan
-					if block.Name == "ExitPlanMode" && strings.Contains(result.String(), `"decision":"Accept"`) {
-						planMode = false
-						fmt.Println("\n" + tools.Status("plan mode off") + " " + tools.Dim("full access"))
-					}
-					toolResults = append(toolResults, claude.ToolResultBlock{
-						Type:      "tool_result",
-						ToolUseID: block.ID,
-						Content:   result.String(),
-					})
-				}
-			}
-
-			if len(toolResults) == 0 {
-				fmt.Println()
-				break
-			}
-
-			hasPending := false
-			for _, t := range sessionTodos {
-				if t.Status == "pending" || t.Status == "in_progress" {
-					hasPending = true
-					break
-				}
-			}
-			state := &AgentState{
-				PlanMode:            planMode,
-				TurnsSinceTodoWrite: turnsSinceTodoWrite,
-				HasPendingTodos:     hasPending,
-			}
-			if reminders := GetReminders(state); reminders != "" {
-				last := &toolResults[len(toolResults)-1]
-				last.Content += "\n" + reminders
-			}
-
-			messages = append(messages, claude.MessageParam{Role: "user", Content: toolResults})
-		}
-
-		if sessionID != "" {
-			if err := saveSession(sessionID, messages, sessionTodos, planMode, tools.GetPermissionsMode()); err != nil {
-				fmt.Println(tools.Error(fmt.Sprintf("save failed: %v", err)))
-			}
-		}
-		turnsSinceTodoWrite++
+	if err := AgentSession(resumeFlag); err != nil {
+		fmt.Println(tools.Error(err.Error()))
+		os.Exit(1)
 	}
 }

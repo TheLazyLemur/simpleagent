@@ -43,14 +43,14 @@ sections:
                       file: "tools/tools.go"
                       line: 46
                     children:
-                      - text: "main.go calls Init with Subagent config"
+                      - text: "AgentSession calls Init with Subagent config"
                         children:
                           - block:
                               id: "1d"
-                              title: "main.go Init call"
+                              title: "AgentSession Init call"
                               code: "tools.Init(tools.Config{..., Subagent: &tools.SubagentConfig{Client: client, Model: model, SystemPrompt: systemPrompt}})"
-                              file: "main.go"
-                              line: 165
+                              file: "cli.go"
+                              line: 85
       - text: "Task tool registered in init with prompt and description params"
         children:
           - block:
