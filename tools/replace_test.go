@@ -293,3 +293,81 @@ func TestReplaceText_MultilineReplacement(t *testing.T) {
 		t.Errorf("expected %q, got: %q", expected, string(content))
 	}
 }
+
+func TestReplaceText_EmptyOldText(t *testing.T) {
+	// given - empty old_text should error
+	SetPermissionsMode("accept_all")
+	defer SetPermissionsMode("prompt")
+
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "test.txt")
+	os.WriteFile(path, []byte("hello"), 0644)
+
+	// when
+	input, _ := json.Marshal(map[string]any{
+		"path":     path,
+		"old_text": "",
+		"new_text": "x",
+	})
+	result := replaceText(input)
+
+	// then
+	if !strings.Contains(result.String(), "cannot be empty") {
+		t.Errorf("empty old_text should error, got: %s", result.String())
+	}
+}
+
+func TestReplaceText_StartLineOnlyNoEndLine(t *testing.T) {
+	// given - only start_line, should go to EOF
+	SetPermissionsMode("accept_all")
+	defer SetPermissionsMode("prompt")
+
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "test.txt")
+	os.WriteFile(path, []byte("aaa\nbbb\naaa\n"), 0644)
+
+	// when
+	input, _ := json.Marshal(map[string]any{
+		"path":       path,
+		"old_text":   "aaa",
+		"new_text":   "ccc",
+		"start_line": 3,
+	})
+	result := replaceText(input)
+
+	// then
+	if strings.Contains(result.String(), "error") {
+		t.Errorf("expected success, got: %s", result.String())
+	}
+	content, _ := os.ReadFile(path)
+	if string(content) != "aaa\nbbb\nccc\n" {
+		t.Errorf("expected line 1 unchanged, got: %q", string(content))
+	}
+}
+
+func TestReplaceText_ReplaceWithEmpty(t *testing.T) {
+	// given - deletion via empty new_text
+	SetPermissionsMode("accept_all")
+	defer SetPermissionsMode("prompt")
+
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "test.txt")
+	os.WriteFile(path, []byte("hello world\n"), 0644)
+
+	// when
+	input, _ := json.Marshal(map[string]any{
+		"path":     path,
+		"old_text": " world",
+		"new_text": "",
+	})
+	result := replaceText(input)
+
+	// then
+	if strings.Contains(result.String(), "error") {
+		t.Errorf("expected success, got: %s", result.String())
+	}
+	content, _ := os.ReadFile(path)
+	if string(content) != "hello\n" {
+		t.Errorf("expected 'hello\\n', got: %q", string(content))
+	}
+}

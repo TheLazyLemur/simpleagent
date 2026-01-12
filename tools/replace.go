@@ -38,6 +38,9 @@ func replaceText(input json.RawMessage) Result {
 	if err := json.Unmarshal(input, &args); err != nil {
 		return newResult("ReplaceText", Error(fmt.Sprintf("invalid input: %v", err)))
 	}
+	if args.OldText == "" {
+		return newResult("ReplaceText", Error("old_text cannot be empty"))
+	}
 
 	data, err := os.ReadFile(args.Path)
 	if err != nil {
