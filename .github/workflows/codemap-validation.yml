@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
 
@@ -24,58 +24,60 @@ jobs:
 
       - name: Validate Codemaps
         uses: anthropics/claude-code-action@v1
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Review this PR and validate all CODEMAP_*.yaml files are accurate.
+            Validate all CODEMAP_*.yaml files in this repo are accurate.
 
             ## Codemap Schema
 
-            Codemaps trace code execution. Each code location becomes a labeled block (1a, 1b, 2a).
-
-            Required structure:
             ```yaml
             title: "Flow Name"                    # REQUIRED
             created: "2024-01-15T10:00:00Z"       # REQUIRED - ISO 8601
             summary: "One sentence"               # REQUIRED
-            description: |                        # OPTIONAL - markdown with [1a] refs
-              Overview with [1a] and [2a] refs.
+            description: |                        # OPTIONAL
+              Overview with [1a] refs.
 
-            sections:                             # REQUIRED - array
+            sections:                             # REQUIRED
               - id: 1                             # REQUIRED - integer
                 title: "Section Name"             # REQUIRED
-                summary: "Description"            # OPTIONAL
-                tree:                             # REQUIRED - array of nodes
-                  - text: "Context text"          # Text node OR block node, not both
-                    children:                     # OPTIONAL - nested nodes
-                      - block:                    # Block node (navigable)
-                          id: "1a"                # REQUIRED - format: <section><letter>
-                          title: "Short title"   # REQUIRED
-                          code: "singleLine()"   # REQUIRED - ONE LINE ONLY
-                          file: "path/file.go"   # REQUIRED - relative path
-                          line: 42               # REQUIRED - exact line number
+                tree:                             # REQUIRED
+                  - text: "Context"               # text OR block, not both
+                    children:
+                      - block:
+                          id: "1a"                # format: <section><letter>
+                          title: "Short title"
+                          code: "singleLine()"   # ONE LINE ONLY
+                          file: "path/file.go"   # relative path, must exist
+                          line: 42               # exact line, 1-indexed
             ```
 
-            ## Validation Rules
+            ## Validation
 
-            | Rule | Requirement |
-            |------|-------------|
-            | Block IDs | Format `<section_num><letter>`: 1a, 1b, 2a, 2b |
-            | Code | **SINGLE LINE ONLY** - most representative line |
-            | File paths | Relative to project root, must exist |
-            | Line numbers | Exact line, 1-indexed, verified accurate |
-            | Tree nodes | Either `text:` OR `block:`, never both on same node |
-
-            ## Tasks
-
-            1. Find all CODEMAP_*.yaml files
+            1. Find all CODEMAP_*.yaml files (if none exist, validation passes)
             2. For each codemap:
-               - Validate YAML structure matches schema
-               - Verify all file paths exist
-               - Verify line numbers match the actual code (read each file and check)
-               - If code changed in this PR, check if any codemaps reference affected lines
-            3. Report:
-               - List any schema violations
-               - List any stale line number references
-               - List any missing file references
-            4. If codemaps are accurate, comment "Codemaps validated successfully"
+               - Verify file paths exist
+               - Verify line numbers are correct (read file, check line)
+               - Verify `code` field matches actual code at that line
+            3. Post result to PR using: `gh pr comment $PR_NUMBER --body "..."`
+
+            ## Output Format
+
+            If ALL codemaps valid:
+            ```
+            gh pr comment $PR_NUMBER --body "## Codemap Validation
+
+            All codemaps are up-to-date."
+            ```
+
+            If ANY issues found:
+            ```
+            gh pr comment $PR_NUMBER --body "## Codemap Validation
+
+            **Issues found:**
+            - CODEMAP_X.yaml: line 42 references file.go:50 but code has changed
+            - ..."
+            ```
+            Then exit with error: `exit 1`
