@@ -1,0 +1,81 @@
+name: Codemap Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    paths:
+      - "**/*.go"
+      - "CODEMAP_*.yaml"
+
+jobs:
+  validate-codemaps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate Codemaps
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Review this PR and validate all CODEMAP_*.yaml files are accurate.
+
+            ## Codemap Schema
+
+            Codemaps trace code execution. Each code location becomes a labeled block (1a, 1b, 2a).
+
+            Required structure:
+            ```yaml
+            title: "Flow Name"                    # REQUIRED
+            created: "2024-01-15T10:00:00Z"       # REQUIRED - ISO 8601
+            summary: "One sentence"               # REQUIRED
+            description: |                        # OPTIONAL - markdown with [1a] refs
+              Overview with [1a] and [2a] refs.
+
+            sections:                             # REQUIRED - array
+              - id: 1                             # REQUIRED - integer
+                title: "Section Name"             # REQUIRED
+                summary: "Description"            # OPTIONAL
+                tree:                             # REQUIRED - array of nodes
+                  - text: "Context text"          # Text node OR block node, not both
+                    children:                     # OPTIONAL - nested nodes
+                      - block:                    # Block node (navigable)
+                          id: "1a"                # REQUIRED - format: <section><letter>
+                          title: "Short title"   # REQUIRED
+                          code: "singleLine()"   # REQUIRED - ONE LINE ONLY
+                          file: "path/file.go"   # REQUIRED - relative path
+                          line: 42               # REQUIRED - exact line number
+            ```
+
+            ## Validation Rules
+
+            | Rule | Requirement |
+            |------|-------------|
+            | Block IDs | Format `<section_num><letter>`: 1a, 1b, 2a, 2b |
+            | Code | **SINGLE LINE ONLY** - most representative line |
+            | File paths | Relative to project root, must exist |
+            | Line numbers | Exact line, 1-indexed, verified accurate |
+            | Tree nodes | Either `text:` OR `block:`, never both on same node |
+
+            ## Tasks
+
+            1. Find all CODEMAP_*.yaml files
+            2. For each codemap:
+               - Validate YAML structure matches schema
+               - Verify all file paths exist
+               - Verify line numbers match the actual code (read each file and check)
+               - If code changed in this PR, check if any codemaps reference affected lines
+            3. Report:
+               - List any schema violations
+               - List any stale line number references
+               - List any missing file references
+            4. If codemaps are accurate, comment "Codemaps validated successfully"
