@@ -110,6 +110,59 @@ func (a *Agent) Save() error {
 	return nil
 }
 
+// fetchResponse streams a response from Claude, returns message and collected text
+func (a *Agent) fetchResponse(toolSet []claude.Tool) (*claude.Message, string, error) {
+	stream := a.client.Messages.Stream(claude.MessageCreateParams{
+		Model:     a.model,
+		MaxTokens: 4096,
+		System:    a.systemPrompt,
+		Messages:  a.messages,
+		Tools:     toolSet,
+		Thinking:  &claude.ThinkingConfig{Type: "enabled"},
+	})
+
+	var textBuffer strings.Builder
+	stream.OnText(func(s string) {
+		textBuffer.WriteString(s)
+	})
+	stream.OnThinking(func(s string) {
+		fmt.Print(tools.Thinking(s))
+	})
+
+	msg, err := stream.FinalMessage()
+	if err != nil {
+		return nil, "", err
+	}
+	return msg, textBuffer.String(), nil
+}
+
+// executeTools runs tool calls from message blocks, returns results
+func (a *Agent) executeTools(blocks []claude.ContentBlock) []claude.ToolResultBlock {
+	var results []claude.ToolResultBlock
+	for _, block := range blocks {
+		if block.Type != "tool_use" {
+			continue
+		}
+		result := tools.Execute(block.Name, block.Input)
+		result.Render()
+
+		if block.Name == "TodoWrite" {
+			a.turnsSinceTodoWrite = 0
+		}
+		if block.Name == "ExitPlanMode" && strings.Contains(result.String(), `"decision":"Accept"`) {
+			a.planMode = false
+			fmt.Println("\n" + tools.Status("plan mode off") + " " + tools.Dim("full access"))
+		}
+
+		results = append(results, claude.ToolResultBlock{
+			Type:      "tool_result",
+			ToolUseID: block.ID,
+			Content:   result.String(),
+		})
+	}
+	return results
+}
+
 // RunInferenceTurn executes one agentic loop iteration
 func (a *Agent) RunInferenceTurn() error {
 	for {
@@ -118,36 +171,17 @@ func (a *Agent) RunInferenceTurn() error {
 			toolSet = tools.ReadOnly()
 		}
 
-		stream := a.client.Messages.Stream(claude.MessageCreateParams{
-			Model:     a.model,
-			MaxTokens: 4096,
-			System:    a.systemPrompt,
-			Messages:  a.messages,
-			Tools:     toolSet,
-			Thinking:  &claude.ThinkingConfig{Type: "enabled"},
-		})
-
-		var textBuffer strings.Builder
-		stream.OnText(func(s string) {
-			textBuffer.WriteString(s)
-		})
-		stream.OnThinking(func(s string) {
-			fmt.Print(tools.Thinking(s))
-		})
-
-		msg, err := stream.FinalMessage()
+		msg, text, err := a.fetchResponse(toolSet)
 		if err != nil {
 			fmt.Printf("\n%s\n", tools.Error(err.Error()))
 			return err
 		}
 		fmt.Println("")
 
-		// Render collected text with glamour
-		if text := textBuffer.String(); text != "" {
+		if text != "" {
 			fmt.Printf("%s\n", tools.Agent())
 			if mdRenderer != nil {
-				rendered, err := mdRenderer.Render(text)
-				if err == nil {
+				if rendered, err := mdRenderer.Render(text); err == nil {
 					fmt.Print(strings.TrimSpace(rendered))
 				} else {
 					fmt.Print(text)
@@ -159,27 +193,7 @@ func (a *Agent) RunInferenceTurn() error {
 
 		a.messages = append(a.messages, claude.MessageParam{Role: "assistant", Content: msg.Content})
 
-		var toolResults []claude.ToolResultBlock
-		for _, block := range msg.Content {
-			if block.Type == "tool_use" {
-				result := tools.Execute(block.Name, block.Input)
-				result.Render()
-				if block.Name == "TodoWrite" {
-					a.turnsSinceTodoWrite = 0
-				}
-				// Check if user accepted the plan
-				if block.Name == "ExitPlanMode" && strings.Contains(result.String(), `"decision":"Accept"`) {
-					a.planMode = false
-					fmt.Println("\n" + tools.Status("plan mode off") + " " + tools.Dim("full access"))
-				}
-				toolResults = append(toolResults, claude.ToolResultBlock{
-					Type:      "tool_result",
-					ToolUseID: block.ID,
-					Content:   result.String(),
-				})
-			}
-		}
-
+		toolResults := a.executeTools(msg.Content)
 		if len(toolResults) == 0 {
 			fmt.Println()
 			return nil

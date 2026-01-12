@@ -11,7 +11,7 @@ description: |
   ## Key Flow
   1. Tool execution: TodoWrite replaces full list via configTodos pointer [1a-1e]
   2. Session persistence: main.go owns sessionTodos, passes pointer to Init [2a-2b]
-  3. Reminder injection: turnsSinceTodoWrite counter, hasPending computed in main.go, nudge after 3 turns [3a-3d]
+  3. Reminder injection: turnsSinceTodoWrite counter reset in executeTools [3b], hasPending computed in RunInferenceTurn [3d], nudge after 3 turns [3f-3g]
 
 sections:
   - id: 1
@@ -190,17 +190,17 @@ sections:
               file: "agent.go"
               line: 13
             children:
-              - text: "Reset to 0 when TodoWrite executed"
+              - text: "Reset to 0 in executeTools when TodoWrite executed"
                 children:
                   - block:
                       id: "3b"
-                      title: "Counter reset in RunInferenceTurn"
+                      title: "Counter reset in executeTools"
                       code: |
                         if block.Name == "TodoWrite" {
                             a.turnsSinceTodoWrite = 0
                         }
                       file: "agent.go"
-                      line: 167
+                      line: 149
               - text: "Increment in Save() after each user turn"
                 children:
                   - block:
@@ -223,7 +223,7 @@ sections:
                     }
                 }
               file: "agent.go"
-              line: 188
+              line: 202
       - text: "AgentState now includes HasPendingTodos field"
         children:
           - block:
@@ -270,7 +270,7 @@ sections:
                             last.Content += "\n" + reminders
                         }
                       file: "agent.go"
-                      line: 195
+                      line: 209
 
   - id: 4
     title: "Display"

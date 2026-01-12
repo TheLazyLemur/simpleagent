@@ -4,12 +4,12 @@ summary: "CLI agentic loop: user input -> API stream -> tool execution -> repeat
 description: |
   ## Overview
   The main agent loop in [1a] reads user input, sends to Claude API [2a],
-  streams responses [2b], executes tools [3a], and persists sessions [4a].
+  streams responses [3e], executes tools [3m], and persists sessions [5a].
 
   ## Key Flow
-  1. Initialization: globals, client setup, session load/create, tools.Init [1a-1h]
-  2. Input handling: commands, bash shortcuts, user messages [2a-2e]
-  3. Agentic loop: API streaming, text rendering, tool execution [3a-3o]
+  1. Initialization: globals, client setup, session load/create, tools.Init [1a-1k]
+  2. Input handling: commands, bash shortcuts, user messages [2a-2f]
+  3. Agentic loop: fetchResponse [3e], text render [3j], executeTools [3m], reminders [3t]
   4. Tool registry: dispatch and execution [4a-4d]
   5. Persistence: session save after each user turn [5a-5b]
 
@@ -173,7 +173,7 @@ sections:
 
   - id: 3
     title: "Agentic Loop"
-    summary: "API streaming, response handling, tool execution (now in agent.go RunInferenceTurn)"
+    summary: "API streaming, response handling, tool execution (agent.go: fetchResponse, executeTools, RunInferenceTurn)"
     tree:
       - text: "RunInferenceTurn called from AgentSession main loop"
         children:
@@ -188,115 +188,142 @@ sections:
                 children:
                   - block:
                       id: "3b"
-                      title: "Agentic loop"
-                      code: "for {"
+                      title: "RunInferenceTurn entry"
+                      code: "func (a *Agent) RunInferenceTurn() error {"
                       file: "agent.go"
-                      line: 115
+                      line: 166
                     children:
                       - text: "Selects tool set based on plan mode"
                         children:
                           - block:
                               id: "3c"
                               title: "Tool selection"
-                              code: "toolSet := tools.All()"
+                              code: |
+                                toolSet := tools.All()
+                                if a.planMode {
+                                    toolSet = tools.ReadOnly()
+                                }
                               file: "agent.go"
-                              line: 116
+                              line: 169
                             children:
-                              - text: "Streams API request with thinking enabled"
+                              - text: "Calls fetchResponse helper for streaming"
                                 children:
                                   - block:
                                       id: "3d"
-                                      title: "API stream"
-                                      code: "stream := a.client.Messages.Stream(claude.MessageCreateParams{"
+                                      title: "fetchResponse call"
+                                      code: "msg, text, err := a.fetchResponse(toolSet)"
                                       file: "agent.go"
-                                      line: 121
-                                    children:
-                                      - text: "Registers streaming callbacks for text and thinking"
-                                        children:
-                                          - block:
-                                              id: "3e"
-                                              title: "Text callback"
-                                              code: "stream.OnText(func(s string) {"
-                                              file: "agent.go"
-                                              line: 131
-                                          - block:
-                                              id: "3f"
-                                              title: "Thinking callback"
-                                              code: "stream.OnThinking(func(s string) {"
-                                              file: "agent.go"
-                                              line: 134
-                                      - text: "Waits for final message"
-                                        children:
-                                          - block:
-                                              id: "3g"
-                                              title: "Final message"
-                                              code: "msg, err := stream.FinalMessage()"
-                                              file: "agent.go"
-                                              line: 138
-                                            children:
-                                              - text: "Renders text with glamour markdown"
-                                                children:
-                                                  - block:
-                                                      id: "3h"
-                                                      title: "Render text"
-                                                      code: "rendered, err := mdRenderer.Render(text)"
-                                                      file: "agent.go"
-                                                      line: 149
-                                              - text: "Appends assistant message to history"
-                                                children:
-                                                  - block:
-                                                      id: "3i"
-                                                      title: "Add assistant msg"
-                                                      code: "a.messages = append(a.messages, claude.MessageParam{Role: \"assistant\", Content: msg.Content})"
-                                                      file: "agent.go"
-                                                      line: 160
-      - text: "Iterates over content blocks for tool calls"
+                                      line: 174
+      - text: "fetchResponse: streaming + callbacks + final message"
+        children:
+          - block:
+              id: "3e"
+              title: "fetchResponse entry"
+              code: "func (a *Agent) fetchResponse(toolSet []claude.Tool) (*claude.Message, string, error) {"
+              file: "agent.go"
+              line: 113
+            children:
+              - text: "Streams API request with thinking enabled"
+                children:
+                  - block:
+                      id: "3f"
+                      title: "API stream"
+                      code: "stream := a.client.Messages.Stream(claude.MessageCreateParams{"
+                      file: "agent.go"
+                      line: 115
+                    children:
+                      - text: "Registers streaming callbacks for text and thinking"
+                        children:
+                          - block:
+                              id: "3g"
+                              title: "Text callback"
+                              code: "stream.OnText(func(s string) {"
+                              file: "agent.go"
+                              line: 125
+                          - block:
+                              id: "3h"
+                              title: "Thinking callback"
+                              code: "stream.OnThinking(func(s string) {"
+                              file: "agent.go"
+                              line: 128
+                      - text: "Waits for final message"
+                        children:
+                          - block:
+                              id: "3i"
+                              title: "Final message"
+                              code: "msg, err := stream.FinalMessage()"
+                              file: "agent.go"
+                              line: 132
+      - text: "RunInferenceTurn: renders text after fetchResponse"
         children:
           - block:
               id: "3j"
-              title: "Tool iteration"
-              code: "for _, block := range msg.Content {"
+              title: "Render text"
+              code: "if rendered, err := mdRenderer.Render(text); err == nil {"
               file: "agent.go"
-              line: 163
+              line: 184
             children:
-              - text: "Executes each tool_use block"
+              - text: "Appends assistant message to history"
                 children:
                   - block:
                       id: "3k"
-                      title: "Tool execute"
-                      code: "result := tools.Execute(block.Name, block.Input)"
+                      title: "Add assistant msg"
+                      code: "a.messages = append(a.messages, claude.MessageParam{Role: \"assistant\", Content: msg.Content})"
                       file: "agent.go"
-                      line: 165
+                      line: 194
+      - text: "Calls executeTools helper for tool execution"
+        children:
+          - block:
+              id: "3l"
+              title: "executeTools call"
+              code: "toolResults := a.executeTools(msg.Content)"
+              file: "agent.go"
+              line: 196
+            children:
+              - text: "executeTools: iterates content blocks, executes tool_use"
+                children:
+                  - block:
+                      id: "3m"
+                      title: "executeTools entry"
+                      code: "func (a *Agent) executeTools(blocks []claude.ContentBlock) []claude.ToolResultBlock {"
+                      file: "agent.go"
+                      line: 139
                     children:
-                      - text: "Renders tool output"
+                      - text: "Executes each tool_use block"
                         children:
                           - block:
-                              id: "3l"
+                              id: "3n"
+                              title: "Tool execute"
+                              code: "result := tools.Execute(block.Name, block.Input)"
+                              file: "agent.go"
+                              line: 146
+                          - block:
+                              id: "3o"
                               title: "Render result"
                               code: "result.Render()"
                               file: "agent.go"
-                              line: 166
+                              line: 147
                       - text: "Builds tool result for API response"
                         children:
                           - block:
-                              id: "3m"
+                              id: "3p"
                               title: "Build result"
-                              code: "toolResults = append(toolResults, claude.ToolResultBlock{"
+                              code: "results = append(results, claude.ToolResultBlock{"
                               file: "agent.go"
-                              line: 175
+                              line: 157
       - text: "Breaks loop if no tool calls"
         children:
           - block:
-              id: "3n"
+              id: "3q"
               title: "No tools break"
               code: "if len(toolResults) == 0 {"
               file: "agent.go"
-              line: 183
+              line: 197
             children:
               - text: "Computes HasPendingTodos from agent's todos"
                 children:
                   - block:
-                      id: "3o"
+                      id: "3r"
                       title: "Pending check"
                       code: |
                         hasPending := false
@@ -307,30 +334,30 @@ sections:
                             }
                         }
                       file: "agent.go"
-                      line: 188
+                      line: 202
                     children:
                       - text: "Builds AgentState with HasPendingTodos field"
                         children:
                           - block:
-                              id: "3p"
+                              id: "3s"
                               title: "AgentState"
                               code: "state := &AgentState{..., HasPendingTodos: hasPending}"
                               file: "agent.go"
-                              line: 195
+                              line: 209
                       - text: "Injects reminders and appends tool results"
                         children:
                           - block:
-                              id: "3q"
+                              id: "3t"
                               title: "Get reminders"
                               code: "if reminders := GetReminders(state); reminders != \"\" {"
                               file: "agent.go"
-                              line: 200
+                              line: 214
                           - block:
-                              id: "3r"
+                              id: "3u"
                               title: "Add tool results"
                               code: "a.messages = append(a.messages, claude.MessageParam{Role: \"user\", Content: toolResults})"
                               file: "agent.go"
-                              line: 205
+                              line: 219
 
   - id: 4
     title: "Tool Registry"

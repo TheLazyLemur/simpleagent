@@ -123,20 +123,20 @@ sections:
                               title: "Pass tools to API"
                               code: "toolSet := tools.All()"
                               file: "agent.go"
-                              line: 116
+                              line: 169
 
   - id: 4
     title: "Execution"
     summary: "Execute tools - local first, MCP fallback"
     tree:
-      - text: "When Claude returns tool_use, Execute dispatches"
+      - text: "When Claude returns tool_use, executeTools dispatches"
         children:
           - block:
               id: "4a"
               title: "Execute dispatch"
               code: "result := tools.Execute(block.Name, block.Input)"
               file: "agent.go"
-              line: 165
+              line: 146
             children:
               - text: "Try local registry first"
                 children:
