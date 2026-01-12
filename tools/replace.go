@@ -84,7 +84,9 @@ func replaceText(input json.RawMessage) Result {
 
 	// Replace within scope
 	updatedScoped := strings.Replace(scopedContent, args.OldText, args.NewText, 1)
-	updatedLines := append(lines[:startIdx], strings.Split(updatedScoped, "\n")...)
+	var updatedLines []string
+	updatedLines = append(updatedLines, lines[:startIdx]...)
+	updatedLines = append(updatedLines, strings.Split(updatedScoped, "\n")...)
 	updatedLines = append(updatedLines, lines[endIdx:]...)
 	updated := strings.Join(updatedLines, "\n")
 
